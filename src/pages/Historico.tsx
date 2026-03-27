@@ -163,10 +163,17 @@ export function Historico() {
             </div>
             <div className="form-label" style={{ marginBottom: 8 }}>Itens</div>
             {pedidoDetalhe.itens.map(i => (
-              <div key={i.produto.id} className="resumo-item">
-                <span className="resumo-item-nome">{i.produto.nome}</span>
-                <span style={{ color: 'var(--texto-claro)' }}>x{i.quantidade}</span>
-                <span className="td-valor">R$ {i.subtotal.toFixed(2).replace('.', ',')}</span>
+              <div key={i.produto.id}>
+                <div className="resumo-item">
+                  <span className="resumo-item-nome">{i.produto.nome}</span>
+                  <span style={{ color: 'var(--texto-claro)' }}>x{i.quantidade}</span>
+                  <span className="td-valor">R$ {i.subtotal.toFixed(2).replace('.', ',')}</span>
+                </div>
+                {i.observacao && (
+                  <div style={{ fontSize: 12, color: 'var(--vermelho)', fontWeight: 600, paddingLeft: 8, marginBottom: 4 }}>
+                    ⚠️ {i.observacao}
+                  </div>
+                )}
               </div>
             ))}
             <div className="resumo-total">

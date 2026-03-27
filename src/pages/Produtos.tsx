@@ -10,9 +10,11 @@ type FormState = {
   estoqueAtual: string;
   estoqueMinimo: string;
   ativo: boolean;
+  imagemEmoji: string;
+  descricao: string;
 };
 
-const formVazio: FormState = { nome: '', categoria: 'Lanche', preco: '', estoqueAtual: '', estoqueMinimo: '', ativo: true };
+const formVazio: FormState = { nome: '', categoria: 'Lanche', preco: '', estoqueAtual: '', estoqueMinimo: '', ativo: true, imagemEmoji: '', descricao: '' };
 
 export function Produtos() {
   const { produtos, adicionarProduto, editarProduto, excluirProduto } = useApp();
@@ -42,6 +44,8 @@ export function Produtos() {
       estoqueAtual: p.estoqueAtual.toString(),
       estoqueMinimo: p.estoqueMinimo.toString(),
       ativo: p.ativo,
+      imagemEmoji: p.imagemEmoji || '',
+      descricao: p.descricao || '',
     });
     setModal(true);
   };
@@ -55,6 +59,8 @@ export function Produtos() {
       estoqueAtual: parseInt(form.estoqueAtual) || 0,
       estoqueMinimo: parseInt(form.estoqueMinimo) || 5,
       ativo: form.ativo,
+      imagemEmoji: form.imagemEmoji.trim() || undefined,
+      descricao: form.descricao.trim() || undefined,
     };
     if (editandoId) {
       editarProduto(editandoId, dados);
@@ -173,6 +179,14 @@ export function Produtos() {
                 <label className="form-label">Estoque mínimo</label>
                 <input type="number" min="1" className="form-control" value={form.estoqueMinimo} onChange={e => setForm(f => ({ ...f, estoqueMinimo: e.target.value }))} placeholder="5" />
               </div>
+              <div className="form-group">
+                <label className="form-label">Emoji (ícone)</label>
+                <input className="form-control" value={form.imagemEmoji} onChange={e => setForm(f => ({ ...f, imagemEmoji: e.target.value }))} placeholder="Ex: 🍔" maxLength={4} style={{ fontSize: 22 }} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Descrição (opcional)</label>
+              <input className="form-control" value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Ex: Hambúrguer artesanal com queijo e alface" />
             </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <label className="form-label" style={{ margin: 0 }}>Ativo</label>

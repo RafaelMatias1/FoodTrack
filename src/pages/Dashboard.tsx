@@ -1,40 +1,57 @@
 import { useApp } from '../context/AppContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const vendaSimulada = [620, 480, 710, 950, 847, 320, 180];
-
-const formasPgto = [
-  { nome: 'Pix', pct: 52 },
-  { nome: 'Crédito', pct: 28 },
-  { nome: 'Débito', pct: 12 },
-  { nome: 'Dinheiro', pct: 8 },
-];
-
-const dataGrafico = diasSemana.map((dia, i) => ({ dia, valor: vendaSimulada[i] }));
-const hojeIdx = 4; // Sexta
+const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export function Dashboard() {
   const { pedidos, produtos } = useApp();
 
   const hoje = new Date();
+  const hojeIdx = hoje.getDay(); // 0=Dom ... 6=Sab
+
+  // Pedidos da semana atual (últimos 7 dias)
   const pedidosHoje = pedidos.filter(p => {
     const d = new Date(p.data);
-    return d.getDate() === hoje.getDate() && d.getMonth() === hoje.getMonth();
+    return d.getDate() === hoje.getDate() && d.getMonth() === hoje.getMonth() && d.getFullYear() === hoje.getFullYear();
   });
 
-  const faturamentoHoje = pedidosHoje
-    .filter(p => p.status !== 'Cancelado')
-    .reduce((sum, p) => sum + p.total, 0);
+  // Vendas por dia da semana (últimos 7 dias)
+  const vendaPorDia = Array(7).fill(0);
+  const seteAtrás = new Date();
+  seteAtrás.setDate(hoje.getDate() - 6);
+  pedidos.forEach(p => {
+    const d = new Date(p.data);
+    if (p.status === 'Cancelado') return;
+    if (d >= seteAtrás && d <= hoje) {
+      vendaPorDia[d.getDay()] += p.total;
+    }
+  });
 
-  const totalItensVendidos = pedidosHoje
-    .filter(p => p.status !== 'Cancelado')
-    .reduce((sum, p) => sum + p.itens.reduce((s, i) => s + i.quantidade, 0), 0);
+  const dataGrafico = diasSemana.map((dia, i) => ({ dia, valor: Math.round(vendaPorDia[i]) }));
 
+  // Formas de pagamento dos pedidos de hoje (reais)
+  const pgtoCount: Record<string, number> = {};
+  const pedidosValidos = pedidosHoje.filter(p => p.status !== 'Cancelado');
+  pedidosValidos.forEach(p => { pgtoCount[p.formaPagamento] = (pgtoCount[p.formaPagamento] || 0) + 1; });
+  const totalPgto = pedidosValidos.length || 1;
+  const formasPgto = Object.entries(pgtoCount).map(([nome, qtd]) => ({ nome, pct: Math.round((qtd / totalPgto) * 100) }));
+  if (formasPgto.length === 0) {
+    formasPgto.push({ nome: 'Pix', pct: 0 }, { nome: 'Crédito', pct: 0 }, { nome: 'Débito', pct: 0 }, { nome: 'Dinheiro', pct: 0 });
+  }
+
+  const faturamentoHoje = pedidosValidos.reduce((sum, p) => sum + p.total, 0);
+  const totalItensVendidos = pedidosValidos.reduce((sum, p) => sum + p.itens.reduce((s, i) => s + i.quantidade, 0), 0);
   const estoqueBaixo = produtos.filter(p => p.estoqueAtual <= p.estoqueMinimo && p.estoqueAtual > 0).length;
-  const ticketMedio = pedidosHoje.length > 0 ? (faturamentoHoje / pedidosHoje.filter(p => p.status !== 'Cancelado').length) : 0;
+  const ticketMedio = pedidosValidos.length > 0 ? faturamentoHoje / pedidosValidos.length : 0;
 
-  const ultimosPedidos = pedidosHoje.slice(0, 5);
+  // Produto mais vendido hoje
+  const vendasPorProduto: Record<string, number> = {};
+  pedidosValidos.forEach(p => p.itens.forEach(i => {
+    vendasPorProduto[i.produto.nome] = (vendasPorProduto[i.produto.nome] || 0) + i.quantidade;
+  }));
+  const maisVendido = Object.entries(vendasPorProduto).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+
+  const ultimosPedidos = [...pedidosHoje].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 5);
 
   const statusClass = (status: string) => {
     if (status === 'Concluído') return 'badge badge-verde';
@@ -58,18 +75,18 @@ export function Dashboard() {
       <div className="stats-grid">
         <div className="stat-card destaque">
           <div className="stat-label">Faturamento Hoje</div>
-          <div className="stat-value">R$ {faturamentoHoje.toLocaleString('pt-BR')}</div>
-          <div className="stat-sub">+12% vs ontem</div>
+          <div className="stat-value">R$ {faturamentoHoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <div className="stat-sub">{pedidosValidos.length} pedido{pedidosValidos.length !== 1 ? 's' : ''} válido{pedidosValidos.length !== 1 ? 's' : ''}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Pedidos Hoje</div>
           <div className="stat-value" style={{ color: 'var(--texto-escuro)' }}>{pedidosHoje.length}</div>
-          <div className="stat-sub normal">Ticket médio R$ {ticketMedio.toFixed(2)}</div>
+          <div className="stat-sub normal">Ticket médio R$ {ticketMedio.toFixed(2).replace('.', ',')}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Itens Vendidos</div>
           <div className="stat-value" style={{ color: 'var(--texto-escuro)' }}>{totalItensVendidos}</div>
-          <div className="stat-sub normal">X-Burguer lidera</div>
+          <div className="stat-sub normal">{maisVendido} lidera</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Estoque Baixo</div>
@@ -82,7 +99,7 @@ export function Dashboard() {
       <div className="charts-grid">
         <div className="chart-card">
           <div className="chart-title">
-            Vendas da semana
+            Vendas dos últimos 7 dias
             <span className="badge badge-laranja">R$</span>
           </div>
           <ResponsiveContainer width="100%" height={160}>
@@ -100,16 +117,20 @@ export function Dashboard() {
         </div>
 
         <div className="chart-card">
-          <div className="chart-title">Formas de pagamento</div>
-          {formasPgto.map(f => (
-            <div key={f.nome} className="pgto-row">
-              <span className="pgto-nome">{f.nome}</span>
-              <div className="pgto-bar-bg">
-                <div className="pgto-bar-fill" style={{ width: `${f.pct}%` }} />
+          <div className="chart-title">Formas de pagamento (hoje)</div>
+          {formasPgto.length > 0 && formasPgto.some(f => f.pct > 0) ? (
+            formasPgto.map(f => (
+              <div key={f.nome} className="pgto-row">
+                <span className="pgto-nome">{f.nome}</span>
+                <div className="pgto-bar-bg">
+                  <div className="pgto-bar-fill" style={{ width: `${f.pct}%` }} />
+                </div>
+                <span className="pgto-pct">{f.pct}%</span>
               </div>
-              <span className="pgto-pct">{f.pct}%</span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p style={{ color: 'var(--texto-claro)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Nenhum pedido hoje ainda.</p>
+          )}
         </div>
       </div>
 

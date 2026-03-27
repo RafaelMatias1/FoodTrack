@@ -1,10 +1,16 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { Produto, Pedido, Cliente, ItemPedido, FormaPagamento, OrigemPedido } from '../types';
+import type { Produto, Pedido, Cliente, ItemPedido, FormaPagamento, OrigemPedido, Configuracoes } from '../types';
 
 interface AppContextType {
   produtos: Produto[];
   pedidos: Pedido[];
   clientes: Cliente[];
+  configuracoes: Configuracoes;
+  logado: boolean;
+  login: (senha: string) => boolean;
+  logout: () => void;
+  cadastrar: (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; senha: string }) => void;
+  primeiroAcesso: boolean;
   adicionarProduto: (produto: Omit<Produto, 'id'>) => void;
   editarProduto: (id: number, produto: Partial<Produto>) => void;
   excluirProduto: (id: number) => void;
@@ -18,20 +24,30 @@ interface AppContextType {
   }) => Pedido;
   atualizarStatusPedido: (id: number, status: Pedido['status']) => void;
   adicionarCliente: (cliente: Omit<Cliente, 'id' | 'totalPedidos' | 'totalGasto'>) => void;
+  salvarConfiguracoes: (cfg: Partial<Configuracoes>) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
+const configPadrao: Configuracoes = {
+  nomeFoodTruck: 'Food Truck do Elpidio',
+  nomeProprietario: 'Elpidio',
+  cidade: 'Guaramirim - SC',
+  senha: '1234',
+  codigoQuiosque: '0000',
+  corPrimaria: '#e07b20',
+};
+
 const produtosIniciais: Produto[] = [
-  { id: 1, nome: 'X-Burguer', categoria: 'Lanche', preco: 18, ativo: true, estoqueAtual: 15, estoqueMinimo: 10 },
-  { id: 2, nome: 'X-Bacon', categoria: 'Lanche', preco: 22, ativo: true, estoqueAtual: 8, estoqueMinimo: 10 },
-  { id: 3, nome: 'Cachorro-Quente', categoria: 'Lanche', preco: 14, ativo: true, estoqueAtual: 20, estoqueMinimo: 10 },
-  { id: 4, nome: 'Fritas Pequena', categoria: 'Acompanhamento', preco: 8, ativo: true, estoqueAtual: 30, estoqueMinimo: 15 },
-  { id: 5, nome: 'Fritas Grande', categoria: 'Acompanhamento', preco: 14, ativo: true, estoqueAtual: 25, estoqueMinimo: 10 },
-  { id: 6, nome: 'Refrigerante', categoria: 'Bebida', preco: 6, ativo: true, estoqueAtual: 3, estoqueMinimo: 10 },
-  { id: 7, nome: 'Suco Natural', categoria: 'Bebida', preco: 8, ativo: false, estoqueAtual: 0, estoqueMinimo: 5 },
-  { id: 8, nome: 'Combo Família', categoria: 'Combo', preco: 65, ativo: true, estoqueAtual: 5, estoqueMinimo: 3 },
-  { id: 9, nome: 'Pão de Hot Dog', categoria: 'Insumo', preco: 2, ativo: true, estoqueAtual: 4, estoqueMinimo: 10 },
+  { id: 1, nome: 'X-Burguer', categoria: 'Lanche', preco: 18, ativo: true, estoqueAtual: 15, estoqueMinimo: 10, imagemEmoji: '🍔' },
+  { id: 2, nome: 'X-Bacon', categoria: 'Lanche', preco: 22, ativo: true, estoqueAtual: 8, estoqueMinimo: 10, imagemEmoji: '🥓' },
+  { id: 3, nome: 'Cachorro-Quente', categoria: 'Lanche', preco: 14, ativo: true, estoqueAtual: 20, estoqueMinimo: 10, imagemEmoji: '🌭' },
+  { id: 4, nome: 'Fritas Pequena', categoria: 'Acompanhamento', preco: 8, ativo: true, estoqueAtual: 30, estoqueMinimo: 15, imagemEmoji: '🍟' },
+  { id: 5, nome: 'Fritas Grande', categoria: 'Acompanhamento', preco: 14, ativo: true, estoqueAtual: 25, estoqueMinimo: 10, imagemEmoji: '🍟' },
+  { id: 6, nome: 'Refrigerante', categoria: 'Bebida', preco: 6, ativo: true, estoqueAtual: 3, estoqueMinimo: 10, imagemEmoji: '🥤' },
+  { id: 7, nome: 'Suco Natural', categoria: 'Bebida', preco: 8, ativo: false, estoqueAtual: 0, estoqueMinimo: 5, imagemEmoji: '🧃' },
+  { id: 8, nome: 'Combo Família', categoria: 'Combo', preco: 65, ativo: true, estoqueAtual: 5, estoqueMinimo: 3, imagemEmoji: '🎁' },
+  { id: 9, nome: 'Pão de Hot Dog', categoria: 'Insumo', preco: 2, ativo: true, estoqueAtual: 4, estoqueMinimo: 10, imagemEmoji: '🍞' },
 ];
 
 const hoje = new Date();
@@ -85,6 +101,13 @@ const clientesIniciais: Cliente[] = [
 ];
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [configuracoes, setConfiguracoes] = useState<Configuracoes>(() => {
+    const saved = localStorage.getItem('ft_config');
+    return saved ? JSON.parse(saved) : configPadrao;
+  });
+  const [primeiroAcesso, setPrimeiroAcesso] = useState<boolean>(() => !localStorage.getItem('ft_config'));
+  const [logado, setLogado] = useState<boolean>(() => sessionStorage.getItem('ft_logado') === 'true');
+
   const [produtos, setProdutos] = useState<Produto[]>(() => {
     const saved = localStorage.getItem('ft_produtos');
     return saved ? JSON.parse(saved) : produtosIniciais;
@@ -106,9 +129,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return clientesIniciais;
   });
 
+  useEffect(() => { localStorage.setItem('ft_config', JSON.stringify(configuracoes)); }, [configuracoes]);
   useEffect(() => { localStorage.setItem('ft_produtos', JSON.stringify(produtos)); }, [produtos]);
   useEffect(() => { localStorage.setItem('ft_pedidos', JSON.stringify(pedidos)); }, [pedidos]);
   useEffect(() => { localStorage.setItem('ft_clientes', JSON.stringify(clientes)); }, [clientes]);
+
+  const login = (senha: string): boolean => {
+    if (senha === configuracoes.senha) {
+      setLogado(true);
+      sessionStorage.setItem('ft_logado', 'true');
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    setLogado(false);
+    sessionStorage.removeItem('ft_logado');
+  };
+
+  const cadastrar = (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; senha: string }) => {
+    const novaCfg = { ...configPadrao, ...dados };
+    setConfiguracoes(novaCfg);
+    localStorage.setItem('ft_config', JSON.stringify(novaCfg));
+    setPrimeiroAcesso(false);
+    setLogado(true);
+    sessionStorage.setItem('ft_logado', 'true');
+  };
+
+  const salvarConfiguracoes = (cfg: Partial<Configuracoes>) => {
+    setConfiguracoes(prev => ({ ...prev, ...cfg }));
+  };
 
   const adicionarProduto = (produto: Omit<Produto, 'id'>) => {
     const id = Math.max(0, ...produtos.map(p => p.id)) + 1;
@@ -139,14 +190,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const total = dados.itens.reduce((sum, item) => sum + item.subtotal, 0);
     const novoPedido: Pedido = { id, numero, ...dados, total, status: 'Em preparo', data: new Date() };
 
-    // Baixa no estoque
     setProdutos(prev => prev.map(p => {
       const item = dados.itens.find(i => i.produto.id === p.id);
       if (item) return { ...p, estoqueAtual: Math.max(0, p.estoqueAtual - item.quantidade) };
       return p;
     }));
 
-    // Atualiza cliente
     if (dados.cliente) {
       setClientes(prev => {
         const existe = prev.find(c => c.nome.toLowerCase().startsWith(dados.cliente!.toLowerCase().split(' ')[0].toLowerCase()));
@@ -175,7 +224,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      produtos, pedidos, clientes,
+      produtos, pedidos, clientes, configuracoes, logado, primeiroAcesso,
+      login, logout, cadastrar, salvarConfiguracoes,
       adicionarProduto, editarProduto, excluirProduto, reporEstoque,
       criarPedido, atualizarStatusPedido, adicionarCliente,
     }}>

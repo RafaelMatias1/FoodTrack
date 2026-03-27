@@ -4,7 +4,7 @@ export type FormaPagamento = 'Pix' | 'Crédito' | 'Débito' | 'Dinheiro';
 
 export type StatusPedido = 'Em preparo' | 'Concluído' | 'Cancelado';
 
-export type OrigemPedido = 'Presencial' | 'WhatsApp';
+export type OrigemPedido = 'Presencial' | 'WhatsApp' | 'Quiosque';
 
 export interface Produto {
   id: number;
@@ -15,12 +15,14 @@ export interface Produto {
   estoqueAtual: number;
   estoqueMinimo: number;
   descricao?: string;
+  imagemEmoji?: string;
 }
 
 export interface ItemPedido {
   produto: Produto;
   quantidade: number;
   subtotal: number;
+  observacao?: string;
 }
 
 export interface Pedido {
@@ -45,4 +47,13 @@ export interface Cliente {
   ultimoPedido?: Date;
   preferencia?: string;
   tipo: 'frequente' | 'recorrente' | 'familiar' | 'WhatsApp' | 'novo';
+}
+
+export interface Configuracoes {
+  nomeFoodTruck: string;
+  nomeProprietario: string;
+  cidade: string;
+  senha: string;
+  codigoQuiosque: string;
+  corPrimaria: string;
 }
