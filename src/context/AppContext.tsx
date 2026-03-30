@@ -7,9 +7,9 @@ interface AppContextType {
   clientes: Cliente[];
   configuracoes: Configuracoes;
   logado: boolean;
-  login: (senha: string) => boolean;
+  login: (email: string, senha: string) => boolean;
   logout: () => void;
-  cadastrar: (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; senha: string }) => void;
+  cadastrar: (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; email: string; senha: string }) => void;
   primeiroAcesso: boolean;
   adicionarProduto: (produto: Omit<Produto, 'id'>) => void;
   editarProduto: (id: number, produto: Partial<Produto>) => void;
@@ -33,6 +33,7 @@ const configPadrao: Configuracoes = {
   nomeFoodTruck: 'Food Truck do Elpidio',
   nomeProprietario: 'Elpidio',
   cidade: 'Guaramirim - SC',
+  email: '',
   senha: '1234',
   codigoQuiosque: '0000',
   corPrimaria: '#e07b20',
@@ -134,8 +135,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => { localStorage.setItem('ft_pedidos', JSON.stringify(pedidos)); }, [pedidos]);
   useEffect(() => { localStorage.setItem('ft_clientes', JSON.stringify(clientes)); }, [clientes]);
 
-  const login = (senha: string): boolean => {
-    if (senha === configuracoes.senha) {
+  const login = (email: string, senha: string): boolean => {
+    if (email === configuracoes.email && senha === configuracoes.senha) {
       setLogado(true);
       sessionStorage.setItem('ft_logado', 'true');
       return true;
@@ -148,7 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('ft_logado');
   };
 
-  const cadastrar = (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; senha: string }) => {
+  const cadastrar = (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; email: string; senha: string }) => {
     const novaCfg = { ...configPadrao, ...dados };
     setConfiguracoes(novaCfg);
     localStorage.setItem('ft_config', JSON.stringify(novaCfg));

@@ -6,6 +6,11 @@ export type StatusPedido = 'Em preparo' | 'Concluído' | 'Cancelado';
 
 export type OrigemPedido = 'Presencial' | 'WhatsApp' | 'Quiosque';
 
+export interface Personalizacao {
+  label: string;
+  tipo: 'remover' | 'adicionar' | 'outro';
+}
+
 export interface Produto {
   id: number;
   nome: string;
@@ -16,6 +21,8 @@ export interface Produto {
   estoqueMinimo: number;
   descricao?: string;
   imagemEmoji?: string;
+  imagemUrl?: string;
+  personalizacoes?: Personalizacao[];
 }
 
 export interface ItemPedido {
@@ -53,6 +60,7 @@ export interface Configuracoes {
   nomeFoodTruck: string;
   nomeProprietario: string;
   cidade: string;
+  email: string;
   senha: string;
   codigoQuiosque: string;
   corPrimaria: string;

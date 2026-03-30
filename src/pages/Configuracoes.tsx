@@ -8,6 +8,7 @@ export function Configuracoes() {
   const [nomeFoodTruck, setNomeFoodTruck] = useState(configuracoes.nomeFoodTruck);
   const [nomeProprietario, setNomeProprietario] = useState(configuracoes.nomeProprietario);
   const [cidade, setCidade] = useState(configuracoes.cidade);
+  const [email, setEmail] = useState(configuracoes.email);
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
@@ -17,7 +18,7 @@ export function Configuracoes() {
   const [salvoSenha, setSalvoSenha] = useState(false);
 
   const salvarGeral = () => {
-    salvarConfiguracoes({ nomeFoodTruck, nomeProprietario, cidade, codigoQuiosque });
+    salvarConfiguracoes({ nomeFoodTruck, nomeProprietario, cidade, email, codigoQuiosque });
     setSalvoGeral(true);
     setTimeout(() => setSalvoGeral(false), 2000);
   };
@@ -66,6 +67,10 @@ export function Configuracoes() {
           <div className="form-group">
             <label className="form-label">Cidade</label>
             <input className="form-control" value={cidade} onChange={e => setCidade(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">E-mail de acesso</label>
+            <input className="form-control" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
           </div>
 
           <div className="form-group">

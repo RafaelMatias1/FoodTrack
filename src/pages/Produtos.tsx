@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import type { Produto, Categoria } from '../types';
-import { Search, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Image, X } from 'lucide-react';
 
 type FormState = {
   nome: string;
@@ -12,9 +12,10 @@ type FormState = {
   ativo: boolean;
   imagemEmoji: string;
   descricao: string;
+  imagemUrl: string;
 };
 
-const formVazio: FormState = { nome: '', categoria: 'Lanche', preco: '', estoqueAtual: '', estoqueMinimo: '', ativo: true, imagemEmoji: '', descricao: '' };
+const formVazio: FormState = { nome: '', categoria: 'Lanche', preco: '', estoqueAtual: '', estoqueMinimo: '', ativo: true, imagemEmoji: '', descricao: '', imagemUrl: '' };
 
 export function Produtos() {
   const { produtos, adicionarProduto, editarProduto, excluirProduto } = useApp();
@@ -23,6 +24,7 @@ export function Produtos() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(formVazio);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtrados = produtos.filter(p =>
     p.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -46,8 +48,28 @@ export function Produtos() {
       ativo: p.ativo,
       imagemEmoji: p.imagemEmoji || '',
       descricao: p.descricao || '',
+      imagemUrl: p.imagemUrl || '',
     });
     setModal(true);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      alert('Imagem muito grande. Máximo 500KB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm(f => ({ ...f, imagemUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removerImagem = () => {
+    setForm(f => ({ ...f, imagemUrl: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const salvar = () => {
@@ -61,6 +83,7 @@ export function Produtos() {
       ativo: form.ativo,
       imagemEmoji: form.imagemEmoji.trim() || undefined,
       descricao: form.descricao.trim() || undefined,
+      imagemUrl: form.imagemUrl || undefined,
     };
     if (editandoId) {
       editarProduto(editandoId, dados);
@@ -101,6 +124,7 @@ export function Produtos() {
           <table>
             <thead>
               <tr>
+                <th>Foto</th>
                 <th>Nome</th>
                 <th>Categoria</th>
                 <th>Preço</th>
@@ -112,6 +136,13 @@ export function Produtos() {
             <tbody>
               {filtrados.map(p => (
                 <tr key={p.id}>
+                  <td style={{ width: 50 }}>
+                    {p.imagemUrl ? (
+                      <img src={p.imagemUrl} alt={p.nome} style={{ width: 40, height: 40, borderRadius: 'var(--radius-sm)', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ fontSize: 24 }}>{p.imagemEmoji || '🍽️'}</span>
+                    )}
+                  </td>
                   <td style={{ fontWeight: 600 }}>{p.nome}</td>
                   <td style={{ color: 'var(--texto-claro)' }}>{p.categoria}</td>
                   <td className="td-valor">R$ {p.preco.toFixed(2).replace('.', ',')}</td>
@@ -136,7 +167,7 @@ export function Produtos() {
                 </tr>
               ))}
               {filtrados.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--texto-claro)', padding: 24 }}>Nenhum produto encontrado.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--texto-claro)', padding: 24 }}>Nenhum produto encontrado.</td></tr>
               )}
             </tbody>
           </table>
@@ -146,10 +177,71 @@ export function Produtos() {
       {/* Modal Editar / Criar */}
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <div className="modal-header">
               <h2 className="modal-title">{editandoId ? 'Editar Produto' : 'Novo Produto'}</h2>
               <button className="modal-close" onClick={() => setModal(false)}>×</button>
+            </div>
+
+            {/* Imagem do produto */}
+            <div className="form-group">
+              <label className="form-label">
+                <Image size={13} style={{ marginRight: 4 }} />
+                Foto do produto
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {form.imagemUrl ? (
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src={form.imagemUrl}
+                      alt="Preview"
+                      style={{ width: 80, height: 80, borderRadius: 'var(--radius)', objectFit: 'cover', border: '2px solid var(--cinza-borda)' }}
+                    />
+                    <button
+                      onClick={removerImagem}
+                      style={{
+                        position: 'absolute', top: -6, right: -6,
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: 'var(--vermelho)', color: 'white',
+                        border: 'none', cursor: 'pointer', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', fontSize: 12,
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      width: 80, height: 80, borderRadius: 'var(--radius)',
+                      border: '2px dashed var(--cinza-borda)', display: 'flex',
+                      flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', color: 'var(--texto-claro)', gap: 4,
+                      transition: 'border-color 0.2s',
+                    }}
+                  >
+                    <Image size={20} />
+                    <span style={{ fontSize: 10 }}>Upload</span>
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Image size={12} /> {form.imagemUrl ? 'Trocar foto' : 'Escolher foto'}
+                  </button>
+                  <p style={{ fontSize: 11, color: 'var(--texto-claro)', marginTop: 4 }}>JPG, PNG. Máximo 500KB.</p>
+                </div>
+              </div>
             </div>
 
             <div className="form-group">
@@ -180,8 +272,9 @@ export function Produtos() {
                 <input type="number" min="1" className="form-control" value={form.estoqueMinimo} onChange={e => setForm(f => ({ ...f, estoqueMinimo: e.target.value }))} placeholder="5" />
               </div>
               <div className="form-group">
-                <label className="form-label">Emoji (ícone)</label>
+                <label className="form-label">Emoji (ícone alternativo)</label>
                 <input className="form-control" value={form.imagemEmoji} onChange={e => setForm(f => ({ ...f, imagemEmoji: e.target.value }))} placeholder="Ex: 🍔" maxLength={4} style={{ fontSize: 22 }} />
+                <p style={{ fontSize: 11, color: 'var(--texto-claro)', marginTop: 2 }}>Usado quando não há foto</p>
               </div>
             </div>
             <div className="form-group">
