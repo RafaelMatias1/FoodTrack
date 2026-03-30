@@ -68,6 +68,13 @@ body {
   color: var(--laranja-claro);
 }
 
+/* Links de nav na topbar: visíveis apenas quando sidebar está escondida (mobile/tablet) */
+.topbar-nav-mobile {
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
 .main-layout {
   display: flex;
   flex: 1;
@@ -735,23 +742,6 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 .toggle input:checked + .toggle-slider { background: var(--verde); }
 .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
 
-/* ========== RESPONSIVO ========== */
-@media (max-width: 900px) {
-  .sidebar { display: none; }
-  .charts-grid { grid-template-columns: 1fr; }
-  .novo-pedido-layout { grid-template-columns: 1fr; }
-  .resumo-pedido { position: static; }
-  .quiosque-produtos { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 640px) {
-  .page-content { padding: 14px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .topbar a { font-size: 11px; padding: 5px 8px; }
-  .produtos-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-  .comandas-grid { grid-template-columns: 1fr; }
-}
-
 /* ========== LOGIN / CADASTRO ========== */
 .login-page {
   min-height: 100vh;
@@ -1193,6 +1183,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 /* ========== RESPONSIVO ATUALIZADO ========== */
 @media (max-width: 900px) {
   .sidebar { display: none; }
+  .topbar-nav-mobile { display: flex; }
   .charts-grid { grid-template-columns: 1fr; }
   .novo-pedido-layout { grid-template-columns: 1fr; }
   .resumo-pedido { position: static; }
@@ -1212,7 +1203,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 }
 
 @media (max-width: 480px) {
-  .topbar a:not(.topbar-brand) { display: none; }
+  .topbar-nav-mobile { display: none; }
   .topbar-brand { font-size: 14px; }
   .page-title { font-size: 17px; }
 }

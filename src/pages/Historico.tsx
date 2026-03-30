@@ -84,7 +84,9 @@ export function Historico() {
       </div>
 
       <div className="card">
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Pedidos de hoje</div>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+          Pedidos de {new Date(filtroData + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+        </div>
         <div className="table-wrapper">
           <table>
             <thead>

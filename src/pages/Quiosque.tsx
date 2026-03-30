@@ -31,11 +31,14 @@ export function Quiosque() {
   const adicionarItem = (produto: Produto) => {
     setItens(prev => {
       const existe = prev.find(i => i.produto.id === produto.id);
-      if (existe) return prev.map(i =>
-        i.produto.id === produto.id
-          ? { ...i, quantidade: i.quantidade + 1, subtotal: (i.quantidade + 1) * produto.preco }
-          : i
-      );
+      if (existe) {
+        if (existe.quantidade >= produto.estoqueAtual) return prev;
+        return prev.map(i =>
+          i.produto.id === produto.id
+            ? { ...i, quantidade: i.quantidade + 1, subtotal: (i.quantidade + 1) * produto.preco }
+            : i
+        );
+      }
       return [...prev, { produto, quantidade: 1, subtotal: produto.preco }];
     });
   };
@@ -208,7 +211,14 @@ export function Quiosque() {
                 <span className="td-valor">R$ {item.subtotal.toFixed(2).replace('.', ',')}</span>
                 <button
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--texto-claro)', padding: 2 }}
-                  onClick={() => { removerItem(item.produto.id); if (itens.length === 1) setPasso('cardapio'); }}
+                  onClick={() => {
+                    if (item.quantidade === 1 && itens.length === 1) {
+                      setItens([]);
+                      setPasso('cardapio');
+                    } else {
+                      removerItem(item.produto.id);
+                    }
+                  }}
                 >
                   <X size={14} />
                 </button>

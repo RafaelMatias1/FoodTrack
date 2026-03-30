@@ -27,25 +27,27 @@ export function Layout() {
 
   return (
     <div className="app-wrapper">
-      {/* Topbar desktop */}
+      {/* Topbar (mobile: navegação principal / desktop: apenas branding) */}
       <nav className="topbar">
         <div className="topbar-brand">
           <Utensils size={15} />
           <span>{configuracoes.nomeFoodTruck}</span>
         </div>
-        {navItems.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) => isActive ? 'active' : ''}
-          >
-            {item.label}
-            {item.to === '/comandas' && emPreparo > 0 && (
-              <span className="topbar-badge">{emPreparo}</span>
-            )}
-          </NavLink>
-        ))}
+        <div className="topbar-nav-mobile">
+          {navItems.map(item => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              className={({ isActive }) => isActive ? 'active' : ''}
+            >
+              {item.label}
+              {item.to === '/comandas' && emPreparo > 0 && (
+                <span className="topbar-badge">{emPreparo}</span>
+              )}
+            </NavLink>
+          ))}
+        </div>
         <div className="topbar-actions">
           <NavLink to="/quiosque" title="Quiosque">
             <Monitor size={14} />

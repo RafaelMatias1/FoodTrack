@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Search, RefreshCw, Plus } from 'lucide-react';
-import type { Produto } from '../types';
+import type { Produto, Categoria } from '../types';
 
 function getStatus(p: Produto) {
   if (p.estoqueAtual === 0) return { label: 'Sem estoque', cls: 'badge badge-vermelho', barCls: 'sem', pct: 0 };
@@ -40,7 +40,7 @@ export function Estoque() {
     if (!novoNome || !novaQtd || !novoMin) return;
     adicionarProduto({
       nome: novoNome,
-      categoria: novaCategoria as any,
+      categoria: novaCategoria as Categoria,
       preco: 0,
       ativo: true,
       estoqueAtual: parseInt(novaQtd),
@@ -62,7 +62,7 @@ export function Estoque() {
           )}
         </div>
         <button className="btn btn-primary" onClick={() => setModalNovo(true)}>
-          <Plus size={15} /> Repor estoque
+          <Plus size={15} /> Novo produto
         </button>
       </div>
 

@@ -26,6 +26,7 @@ export function NovoPedido() {
     setItens(prev => {
       const existe = prev.find(i => i.produto.id === produto.id);
       if (existe) {
+        if (existe.quantidade >= produto.estoqueAtual) return prev;
         return prev.map(i =>
           i.produto.id === produto.id
             ? { ...i, quantidade: i.quantidade + 1, subtotal: (i.quantidade + 1) * produto.preco }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import type { Produto } from '../types';
+import type { Produto, Categoria } from '../types';
 import { Search, Plus, Pencil, Trash2 } from 'lucide-react';
 
 type FormState = {
@@ -54,7 +54,7 @@ export function Produtos() {
     if (!form.nome || !form.preco) return;
     const dados: Omit<Produto, 'id'> = {
       nome: form.nome,
-      categoria: form.categoria as any,
+      categoria: form.categoria as Categoria,
       preco: parseFloat(form.preco),
       estoqueAtual: parseInt(form.estoqueAtual) || 0,
       estoqueMinimo: parseInt(form.estoqueMinimo) || 5,

@@ -198,7 +198,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (dados.cliente) {
       setClientes(prev => {
-        const existe = prev.find(c => c.nome.toLowerCase().startsWith(dados.cliente!.toLowerCase().split(' ')[0].toLowerCase()));
+        const nomeCliente = dados.cliente!.toLowerCase().trim();
+        const existe = prev.find(c => c.nome.toLowerCase() === nomeCliente)
+          || prev.find(c => c.nome.toLowerCase().includes(nomeCliente))
+          || prev.find(c => nomeCliente.includes(c.nome.toLowerCase().split(' ')[0]));
         if (existe) {
           return prev.map(c => c.id === existe.id
             ? { ...c, totalPedidos: c.totalPedidos + 1, totalGasto: c.totalGasto + total, ultimoPedido: new Date() }
