@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
+  senhaHash        String
+  nomeFoodTruck    String
+  nomeProprietario String
+  cidade           String
+  codigoQuiosque   String   @default("0000")
+  corPrimaria      String   @default("#e07b20")
+  criadoEm         DateTime @default(now())
+
+  produtos Produto[]
+  pedidos  Pedido[]
+  clientes Cliente[]
+}
+
+model Produto {
+  id              Int     @id @default(autoincrement())
+  usuarioId       Int
+  usuario         Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome            String
+  categoria       String
+  preco           Float
+  ativo           Boolean @default(true)
+  estoqueAtual    Int     @default(0)
+  estoqueMinimo   Int     @default(0)
+  descricao       String?
+  imagemEmoji     String?
+  imagemUrl       String?
+  personalizacoes String?
+
+  itens ItemPedido[]
+}
+
+model Cliente {
+  id           Int       @id @default(autoincrement())
+  usuarioId    Int
+  usuario      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome         String
+  contato      String?
+  totalPedidos Int       @default(0)
+  totalGasto   Float     @default(0)
+  ultimoPedido DateTime?
+  preferencia  String?
+  tipo         String    @default("novo")
+
+  pedidos Pedido[]
+}
+
+model Pedido {
+  id             Int      @id @default(autoincrement())
+  usuarioId      Int
+  usuario        Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  numero         String
+  clienteNome    String?
+  clienteId      Int?
+  cliente        Cliente? @relation(fields: [clienteId], references: [id])
+  origem         String
+  total          Float
+  formaPagamento String
+  status         String   @default("Em preparo")
+  observacoes    String?
+  data           DateTime @default(now())
+
+  itens ItemPedido[]
+}
+
+model ItemPedido {
+  id         Int     @id @default(autoincrement())
+  pedidoId   Int
+  pedido     Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produtoId  Int
+  produto    Produto @relation(fields: [produtoId], references: [id])
+  quantidade Int
+  precoUnit  Float
+  subtotal   Float
+  observacao String?
+}
