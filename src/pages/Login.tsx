@@ -3,15 +3,24 @@ import { useApp } from '../context/AppContext';
 import { Utensils, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
-  const { login, configuracoes } = useApp();
+  const { login, configuracoes, resetarAcesso } = useApp();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [mostrar, setMostrar] = useState(false);
   const [tentando, setTentando] = useState(false);
 
+  const handleEsqueciSenha = () => {
+    const ok = window.confirm(
+      'Isso vai apagar seu e-mail e senha atuais para você cadastrar de novo. Seus produtos, pedidos e clientes serão mantidos. Continuar?'
+    );
+    if (ok) resetarAcesso();
+  };
+
+  const exigeEmail = !!configuracoes.email;
+
   const handleLogin = () => {
-    if (!email.trim()) {
+    if (exigeEmail && !email.trim()) {
       setErro('Digite seu e-mail.');
       return;
     }
@@ -39,21 +48,23 @@ export function Login() {
         <h1 className="login-title">{configuracoes.nomeFoodTruck}</h1>
         <p className="login-sub">Sistema de Gerenciamento</p>
 
-        <div className="form-group">
-          <label className="form-label">
-            <Mail size={12} style={{ marginRight: 4 }} />
-            E-mail
-          </label>
-          <input
-            className={`form-control ${erro && !email.trim() ? 'input-erro' : ''}`}
-            type="email"
-            value={email}
-            onChange={e => { setEmail(e.target.value); setErro(''); }}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            placeholder="Digite seu e-mail"
-            autoFocus
-          />
-        </div>
+        {exigeEmail && (
+          <div className="form-group">
+            <label className="form-label">
+              <Mail size={12} style={{ marginRight: 4 }} />
+              E-mail
+            </label>
+            <input
+              className={`form-control ${erro && !email.trim() ? 'input-erro' : ''}`}
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); setErro(''); }}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="Digite seu e-mail"
+              autoFocus
+            />
+          </div>
+        )}
 
         <div className="form-group" style={{ position: 'relative' }}>
           <label className="form-label">
@@ -86,6 +97,23 @@ export function Login() {
           disabled={tentando}
         >
           {tentando ? 'Entrando...' : 'Entrar'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleEsqueciSenha}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--texto-claro)',
+            fontSize: 13,
+            marginTop: 12,
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            width: '100%',
+          }}
+        >
+          Esqueci minha senha
         </button>
 
         <p className="login-hint">

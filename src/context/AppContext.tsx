@@ -10,6 +10,7 @@ interface AppContextType {
   login: (email: string, senha: string) => boolean;
   logout: () => void;
   cadastrar: (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; email: string; senha: string }) => void;
+  resetarAcesso: () => void;
   primeiroAcesso: boolean;
   adicionarProduto: (produto: Omit<Produto, 'id'>) => void;
   editarProduto: (id: number, produto: Partial<Produto>) => void;
@@ -106,7 +107,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('ft_config');
     return saved ? JSON.parse(saved) : configPadrao;
   });
-  const [primeiroAcesso, setPrimeiroAcesso] = useState<boolean>(() => !localStorage.getItem('ft_config'));
+  const [primeiroAcesso, setPrimeiroAcesso] = useState<boolean>(() => {
+    const saved = localStorage.getItem('ft_config');
+    if (!saved) return true;
+    try {
+      const cfg = JSON.parse(saved);
+      return !cfg.email;
+    } catch {
+      return true;
+    }
+  });
   const [logado, setLogado] = useState<boolean>(() => sessionStorage.getItem('ft_logado') === 'true');
 
   const [produtos, setProdutos] = useState<Produto[]>(() => {
@@ -136,7 +146,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => { localStorage.setItem('ft_clientes', JSON.stringify(clientes)); }, [clientes]);
 
   const login = (email: string, senha: string): boolean => {
-    if (email === configuracoes.email && senha === configuracoes.senha) {
+    const emailOk = !configuracoes.email || email === configuracoes.email;
+    if (emailOk && senha === configuracoes.senha) {
       setLogado(true);
       sessionStorage.setItem('ft_logado', 'true');
       return true;
@@ -160,6 +171,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const salvarConfiguracoes = (cfg: Partial<Configuracoes>) => {
     setConfiguracoes(prev => ({ ...prev, ...cfg }));
+  };
+
+  const resetarAcesso = () => {
+    setConfiguracoes(prev => ({ ...prev, email: '', senha: '' }));
+    setLogado(false);
+    setPrimeiroAcesso(true);
+    sessionStorage.removeItem('ft_logado');
   };
 
   const adicionarProduto = (produto: Omit<Produto, 'id'>) => {
@@ -229,7 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       produtos, pedidos, clientes, configuracoes, logado, primeiroAcesso,
-      login, logout, cadastrar, salvarConfiguracoes,
+      login, logout, cadastrar, resetarAcesso, salvarConfiguracoes,
       adicionarProduto, editarProduto, excluirProduto, reporEstoque,
       criarPedido, atualizarStatusPedido, adicionarCliente,
     }}>
