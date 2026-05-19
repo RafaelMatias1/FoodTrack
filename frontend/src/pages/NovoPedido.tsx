@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../components/Toast';
 import type { ItemPedido, FormaPagamento, OrigemPedido, Produto } from '../types';
 import { Plus, Trash2, MessageSquare } from 'lucide-react';
 
 export function NovoPedido() {
   const { produtos, criarPedido, pedidos } = useApp();
+  const toast = useToast();
   const navigate = useNavigate();
 
   const [cliente, setCliente] = useState('');
@@ -17,6 +19,7 @@ export function NovoPedido() {
   const [obsAberta, setObsAberta] = useState<number | null>(null);
   const [sucesso, setSucesso] = useState(false);
   const [numeroPedidoCriado, setNumeroPedidoCriado] = useState('');
+  const [salvando, setSalvando] = useState(false);
 
   const proximoNumero = Math.max(0, ...pedidos.map(p => p.id)) + 1;
   const produtosAtivos = produtos.filter(p => p.ativo);
@@ -61,6 +64,7 @@ export function NovoPedido() {
 
   const confirmar = async () => {
     if (itens.length === 0) return;
+    setSalvando(true);
     try {
       const pedido = await criarPedido({
         cliente: semCliente ? undefined : (cliente.trim() || undefined),
@@ -73,7 +77,9 @@ export function NovoPedido() {
       setSucesso(true);
       setTimeout(() => navigate('/historico'), 1800);
     } catch (e) {
-      alert((e as Error).message ?? 'Erro ao criar pedido.');
+      toast.erro((e as Error).message ?? 'Erro ao criar pedido.');
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -249,9 +255,9 @@ export function NovoPedido() {
             className="btn btn-primary btn-block btn-lg"
             style={{ marginBottom: 8 }}
             onClick={confirmar}
-            disabled={itens.length === 0}
+            disabled={itens.length === 0 || salvando}
           >
-            Confirmar Pedido
+            {salvando ? 'Confirmando...' : 'Confirmar Pedido'}
           </button>
           <button className="btn btn-ghost btn-block" onClick={() => navigate('/')}>
             Cancelar

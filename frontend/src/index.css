@@ -1,5 +1,14 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 :root {
   --marrom-escuro: #3d1a00;
   --marrom-medio: #5c2a00;
@@ -1206,4 +1215,14 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   .topbar-nav-mobile { display: none; }
   .topbar-brand { font-size: 14px; }
   .page-title { font-size: 17px; }
+}
+
+/* === Spinner de Loading === */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid var(--creme-escuro);
+  border-top-color: var(--laranja);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }

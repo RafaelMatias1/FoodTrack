@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../components/Toast';
 import type { ItemPedido, FormaPagamento, Produto } from '../types';
 import { ShoppingCart, X, ChevronRight, Lock, ChevronLeft, MessageSquare } from 'lucide-react';
 
@@ -29,6 +30,7 @@ const personalizacoesComuns: Record<string, { remover: string[]; adicionar: stri
 
 export function Quiosque() {
   const { produtos, criarPedido, configuracoes } = useApp();
+  const toast = useToast();
   const navigate = useNavigate();
   const [passo, setPasso] = useState<Passo>('cardapio');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('Lanche');
@@ -39,6 +41,7 @@ export function Quiosque() {
   const [mostrarSair, setMostrarSair] = useState(false);
   const [codigoDigitado, setCodigoDigitado] = useState('');
   const [erroCodigo, setErroCodigo] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
 
   // Personalização
   const [produtoPersonalizando, setProdutoPersonalizando] = useState<number | null>(null);
@@ -130,6 +133,7 @@ export function Quiosque() {
   };
 
   const confirmarPedido = async () => {
+    setConfirmando(true);
     try {
       const pedido = await criarPedido({
         cliente: nomeCliente.trim() || undefined,
@@ -140,7 +144,9 @@ export function Quiosque() {
       setPedidoConfirmado(pedido.numero);
       setPasso('confirmado');
     } catch (e) {
-      alert((e as Error).message ?? 'Erro ao confirmar pedido.');
+      toast.erro((e as Error).message ?? 'Erro ao confirmar pedido.');
+    } finally {
+      setConfirmando(false);
     }
   };
 
@@ -534,8 +540,9 @@ export function Quiosque() {
               className="btn btn-primary btn-block btn-lg"
               style={{ marginTop: 16 }}
               onClick={confirmarPedido}
+              disabled={confirmando}
             >
-              Confirmar pedido · R$ {total.toFixed(2).replace('.', ',')}
+              {confirmando ? 'Confirmando...' : `Confirmar pedido · R$ ${total.toFixed(2).replace('.', ',')}`}
             </button>
           </div>
         </div>

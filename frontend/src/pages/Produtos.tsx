@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../components/Toast';
 import type { Produto, Categoria } from '../types';
 import { Search, Plus, Pencil, Trash2, Image, X } from 'lucide-react';
 
@@ -19,6 +20,7 @@ const formVazio: FormState = { nome: '', categoria: 'Lanche', preco: '', estoque
 
 export function Produtos() {
   const { produtos, adicionarProduto, editarProduto, excluirProduto } = useApp();
+  const toast = useToast();
   const [busca, setBusca] = useState('');
   const [modal, setModal] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -57,7 +59,7 @@ export function Produtos() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 500 * 1024) {
-      alert('Imagem muito grande. Máximo 500KB.');
+      toast.erro('Imagem muito grande. Máximo 500KB.');
       return;
     }
     const reader = new FileReader();
@@ -93,7 +95,7 @@ export function Produtos() {
       }
       setModal(false);
     } catch (e) {
-      alert((e as Error).message ?? 'Erro ao salvar produto.');
+      toast.erro((e as Error).message ?? 'Erro ao salvar produto.');
     }
   };
 
@@ -101,8 +103,9 @@ export function Produtos() {
     if (confirmDelete) {
       try {
         await excluirProduto(confirmDelete);
+        toast.sucesso('Produto excluído.');
       } catch (e) {
-        alert((e as Error).message ?? 'Erro ao excluir produto.');
+        toast.erro((e as Error).message ?? 'Erro ao excluir produto.');
       }
     }
     setConfirmDelete(null);

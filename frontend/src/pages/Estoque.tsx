@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../components/Toast';
 import { Search, RefreshCw, Plus } from 'lucide-react';
 import type { Produto, Categoria } from '../types';
 
@@ -11,6 +12,7 @@ function getStatus(p: Produto) {
 
 export function Estoque() {
   const { produtos, reporEstoque, adicionarProduto } = useApp();
+  const toast = useToast();
   const [busca, setBusca] = useState('');
   const [modalReporId, setModalReporId] = useState<number | null>(null);
   const [qtdRepor, setQtdRepor] = useState('');
@@ -33,8 +35,9 @@ export function Estoque() {
     if (!modalReporId || !qtdRepor) return;
     try {
       await reporEstoque(modalReporId, parseInt(qtdRepor));
+      toast.sucesso('Estoque reposto com sucesso!');
     } catch (e) {
-      alert((e as Error).message ?? 'Erro ao repor estoque.');
+      toast.erro((e as Error).message ?? 'Erro ao repor estoque.');
     }
     setModalReporId(null);
     setQtdRepor('');
@@ -54,7 +57,7 @@ export function Estoque() {
       setModalNovo(false);
       setNovoNome(''); setNovaQtd(''); setNovoMin('');
     } catch (e) {
-      alert((e as Error).message ?? 'Erro ao adicionar produto.');
+      toast.erro((e as Error).message ?? 'Erro ao adicionar produto.');
     }
   };
 

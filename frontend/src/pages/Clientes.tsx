@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../components/Toast';
 import type { Cliente } from '../types';
 import { Search, UserPlus } from 'lucide-react';
 
@@ -20,6 +21,7 @@ function tipoBadge(tipo: Cliente['tipo']) {
 
 export function Clientes() {
   const { clientes, adicionarCliente } = useApp();
+  const toast = useToast();
   const [busca, setBusca] = useState('');
   const [modal, setModal] = useState(false);
   const [nome, setNome] = useState('');
@@ -39,7 +41,7 @@ export function Clientes() {
       setModal(false);
       setNome(''); setContato('');
     } catch (e) {
-      alert((e as Error).message ?? 'Erro ao adicionar cliente.');
+      toast.erro((e as Error).message ?? 'Erro ao adicionar cliente.');
     }
   };
 

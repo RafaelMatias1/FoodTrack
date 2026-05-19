@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../components/Toast';
 import { CheckCircle, Clock, Utensils, XCircle, History } from 'lucide-react';
 
 type AbaComandas = 'preparo' | 'encerradas';
 
 export function Comandas() {
   const { pedidos, atualizarStatusPedido } = useApp();
+  const toast = useToast();
   const [aba, setAba] = useState<AbaComandas>('preparo');
   const [confirmCancel, setConfirmCancel] = useState<number | null>(null);
+  const [loadingConcluir, setLoadingConcluir] = useState<number | null>(null);
+  const [loadingCancelar, setLoadingCancelar] = useState<number | null>(null);
 
   const emPreparo = pedidos
     .filter(p => p.status === 'Em preparo')
@@ -24,8 +28,27 @@ export function Comandas() {
   };
 
   const cancelarPedido = async (id: number) => {
-    await atualizarStatusPedido(id, 'Cancelado');
-    setConfirmCancel(null);
+    setLoadingCancelar(id);
+    try {
+      await atualizarStatusPedido(id, 'Cancelado');
+      toast.sucesso('Pedido cancelado.');
+    } catch (e) {
+      toast.erro((e as Error).message ?? 'Erro ao cancelar pedido.');
+    } finally {
+      setLoadingCancelar(null);
+      setConfirmCancel(null);
+    }
+  };
+
+  const concluirPedido = async (id: number) => {
+    setLoadingConcluir(id);
+    try {
+      await atualizarStatusPedido(id, 'Concluído');
+    } catch (e) {
+      toast.erro((e as Error).message ?? 'Erro ao concluir pedido.');
+    } finally {
+      setLoadingConcluir(null);
+    }
   };
 
   return (
@@ -136,10 +159,11 @@ export function Comandas() {
                     <button
                       className="btn btn-primary"
                       style={{ flex: 1 }}
-                      onClick={() => atualizarStatusPedido(pedido.id, 'Concluído').catch(console.error)}
+                      disabled={loadingConcluir === pedido.id}
+                      onClick={() => concluirPedido(pedido.id)}
                     >
                       <CheckCircle size={15} />
-                      Pronto
+                      {loadingConcluir === pedido.id ? 'Salvando...' : 'Pronto'}
                     </button>
                     <button
                       className="btn btn-danger"
@@ -243,7 +267,13 @@ export function Comandas() {
             <p style={{ color: 'var(--vermelho)', fontSize: 12 }}>Esta ação não pode ser desfeita.</p>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setConfirmCancel(null)}>Voltar</button>
-              <button className="btn btn-danger" onClick={() => cancelarPedido(confirmCancel)}>Cancelar Pedido</button>
+              <button
+                className="btn btn-danger"
+                disabled={loadingCancelar === confirmCancel}
+                onClick={() => cancelarPedido(confirmCancel)}
+              >
+                {loadingCancelar === confirmCancel ? 'Cancelando...' : 'Cancelar Pedido'}
+              </button>
             </div>
           </div>
         </div>

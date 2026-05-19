@@ -1,7 +1,7 @@
 # 🗺️ ROADMAP — FoodTruck
 
 > Arquivo de progresso do projeto. Atualizado a cada etapa concluída.  
-> **Última atualização:** 19/05/2026
+> **Última atualização:** 19/05/2026 (Etapa 5 concluída)
 
 ---
 

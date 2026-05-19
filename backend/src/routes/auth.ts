@@ -71,3 +71,42 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
     res.json({ usuario: publicUsuario(usuario) });
   } catch (e) { next(e); }
 });
+
+const updateProfileSchema = z.object({
+  nomeFoodTruck:    z.string().min(1).optional(),
+  nomeProprietario: z.string().min(1).optional(),
+  cidade:           z.string().optional(),
+  codigoQuiosque:   z.string().optional(),
+  corPrimaria:      z.string().optional(),
+});
+
+authRouter.patch('/me', requireAuth, async (req, res, next) => {
+  try {
+    const dados = parseBody(updateProfileSchema, req.body);
+    const usuario = await prisma.usuario.update({
+      where: { id: req.usuarioId! },
+      data: dados,
+    });
+    res.json({ usuario: publicUsuario(usuario) });
+  } catch (e) { next(e); }
+});
+
+const changePasswordSchema = z.object({
+  senhaAtual: z.string().min(1),
+  novaSenha:  z.string().min(4),
+});
+
+authRouter.patch('/me/senha', requireAuth, async (req, res, next) => {
+  try {
+    const { senhaAtual, novaSenha } = parseBody(changePasswordSchema, req.body);
+    const usuario = await prisma.usuario.findUnique({ where: { id: req.usuarioId! } });
+    if (!usuario) throw httpError(404, 'usuário não encontrado');
+    const ok = await compararSenha(senhaAtual, usuario.senhaHash);
+    if (!ok) throw httpError(401, 'senha atual incorreta');
+    await prisma.usuario.update({
+      where: { id: req.usuarioId! },
+      data: { senhaHash: await hashSenha(novaSenha) },
+    });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});

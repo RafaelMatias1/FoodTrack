@@ -1,46 +1,54 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../components/Toast';
+import { api } from '../services/api';
 import { Save, LogOut, Shield, Store, Key } from 'lucide-react';
 
 export function Configuracoes() {
   const { configuracoes, salvarConfiguracoes, logout } = useApp();
+  const toast = useToast();
 
-  const [nomeFoodTruck, setNomeFoodTruck] = useState(configuracoes.nomeFoodTruck);
+  const [nomeFoodTruck, setNomeFoodTruck]       = useState(configuracoes.nomeFoodTruck);
   const [nomeProprietario, setNomeProprietario] = useState(configuracoes.nomeProprietario);
-  const [cidade, setCidade] = useState(configuracoes.cidade);
-  const [email, setEmail] = useState(configuracoes.email);
-  const [senhaAtual, setSenhaAtual] = useState('');
-  const [novaSenha, setNovaSenha] = useState('');
+  const [cidade, setCidade]                     = useState(configuracoes.cidade);
+  const [codigoQuiosque, setCodigoQuiosque]     = useState(configuracoes.codigoQuiosque);
+  const [senhaAtual, setSenhaAtual]             = useState('');
+  const [novaSenha, setNovaSenha]               = useState('');
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
-  const [codigoQuiosque, setCodigoQuiosque] = useState(configuracoes.codigoQuiosque);
-  const [erroSenha, setErroSenha] = useState('');
-  const [salvoGeral, setSalvoGeral] = useState(false);
-  const [salvoSenha, setSalvoSenha] = useState(false);
+  const [erroSenha, setErroSenha]               = useState('');
+  const [salvandoGeral, setSalvandoGeral]       = useState(false);
+  const [salvandoSenha, setSalvandoSenha]       = useState(false);
 
-  const salvarGeral = () => {
-    salvarConfiguracoes({ nomeFoodTruck, nomeProprietario, cidade, email, codigoQuiosque });
-    setSalvoGeral(true);
-    setTimeout(() => setSalvoGeral(false), 2000);
+  const salvarGeral = async () => {
+    setSalvandoGeral(true);
+    try {
+      const res = await api.patch<{ usuario: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; codigoQuiosque: string } }>(
+        '/auth/me',
+        { nomeFoodTruck, nomeProprietario, cidade, codigoQuiosque }
+      );
+      salvarConfiguracoes({ ...res.usuario });
+      toast.sucesso('Dados salvos com sucesso!');
+    } catch (e) {
+      toast.erro((e as Error).message ?? 'Erro ao salvar.');
+    } finally {
+      setSalvandoGeral(false);
+    }
   };
 
-  const salvarSenha = () => {
+  const salvarSenha = async () => {
     setErroSenha('');
-    if (senhaAtual !== configuracoes.senha) {
-      setErroSenha('Senha atual incorreta.');
-      return;
+    if (novaSenha.length < 4)          { setErroSenha('A nova senha deve ter no mínimo 4 caracteres.'); return; }
+    if (novaSenha !== confirmarNovaSenha) { setErroSenha('As senhas não coincidem.'); return; }
+    setSalvandoSenha(true);
+    try {
+      await api.patch('/auth/me/senha', { senhaAtual, novaSenha });
+      setSenhaAtual(''); setNovaSenha(''); setConfirmarNovaSenha('');
+      toast.sucesso('Senha alterada com sucesso!');
+    } catch (e) {
+      setErroSenha((e as Error).message ?? 'Erro ao alterar senha.');
+    } finally {
+      setSalvandoSenha(false);
     }
-    if (novaSenha.length < 4) {
-      setErroSenha('A nova senha deve ter no mínimo 4 caracteres.');
-      return;
-    }
-    if (novaSenha !== confirmarNovaSenha) {
-      setErroSenha('As senhas não coincidem.');
-      return;
-    }
-    salvarConfiguracoes({ senha: novaSenha });
-    setSenhaAtual(''); setNovaSenha(''); setConfirmarNovaSenha('');
-    setSalvoSenha(true);
-    setTimeout(() => setSalvoSenha(false), 2000);
   };
 
   return (
@@ -70,32 +78,25 @@ export function Configuracoes() {
           </div>
           <div className="form-group">
             <label className="form-label">E-mail de acesso</label>
-            <input className="form-control" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+            <input className="form-control" type="email" value={configuracoes.email} readOnly style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+            <p style={{ fontSize: 11, color: 'var(--texto-claro)', marginTop: 4 }}>O e-mail não pode ser alterado.</p>
           </div>
-
           <div className="form-group">
             <label className="form-label">
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={13} /> Código do Quiosque (para sair da tela do cliente)</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={13} /> Código do Quiosque</span>
             </label>
-            <input
-              className="form-control"
-              value={codigoQuiosque}
-              onChange={e => setCodigoQuiosque(e.target.value)}
-              maxLength={6}
-              placeholder="Ex: 0000"
-            />
+            <input className="form-control" value={codigoQuiosque} onChange={e => setCodigoQuiosque(e.target.value)} maxLength={6} placeholder="Ex: 0000" />
             <p style={{ fontSize: 11, color: 'var(--texto-claro)', marginTop: 4 }}>
-              Este código é exigido para sair da tela de autoatendimento dos clientes.
+              Este código é exigido para sair da tela de autoatendimento.
             </p>
           </div>
-
-          <button className="btn btn-primary" onClick={salvarGeral}>
-            <Save size={14} /> {salvoGeral ? '✓ Salvo!' : 'Salvar alterações'}
+          <button className="btn btn-primary" onClick={salvarGeral} disabled={salvandoGeral}>
+            <Save size={14} /> {salvandoGeral ? 'Salvando...' : 'Salvar alterações'}
           </button>
         </div>
 
-        {/* Segurança */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Alterar Senha */}
           <div className="card">
             <div className="chart-title" style={{ marginBottom: 16 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Key size={16} /> Alterar Senha</span>
@@ -113,9 +114,8 @@ export function Configuracoes() {
               <input className="form-control" type="password" value={confirmarNovaSenha} onChange={e => { setConfirmarNovaSenha(e.target.value); setErroSenha(''); }} />
             </div>
             {erroSenha && <p className="input-erro-msg" style={{ marginBottom: 10 }}>{erroSenha}</p>}
-            {salvoSenha && <div className="alert alert-success" style={{ marginBottom: 10 }}>✓ Senha alterada com sucesso!</div>}
-            <button className="btn btn-primary" onClick={salvarSenha} disabled={!senhaAtual || !novaSenha || !confirmarNovaSenha}>
-              <Key size={14} /> Alterar senha
+            <button className="btn btn-primary" onClick={salvarSenha} disabled={salvandoSenha || !senhaAtual || !novaSenha || !confirmarNovaSenha}>
+              <Key size={14} /> {salvandoSenha ? 'Alterando...' : 'Alterar senha'}
             </button>
           </div>
 
@@ -125,7 +125,7 @@ export function Configuracoes() {
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><LogOut size={16} /> Sessão</span>
             </div>
             <p style={{ fontSize: 13, color: 'var(--texto-claro)', marginBottom: 14 }}>
-              Ao sair, será necessário digitar a senha novamente para acessar o sistema.
+              Ao sair, será necessário fazer login novamente para acessar o sistema.
             </p>
             <button className="btn btn-danger" onClick={logout}>
               <LogOut size={14} /> Sair do sistema

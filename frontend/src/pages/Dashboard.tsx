@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export function Dashboard() {
-  const { pedidos, produtos } = useApp();
+  const { pedidos, produtos, carregando } = useApp();
 
   const hoje = new Date();
   const hojeIdx = hoje.getDay(); // 0=Dom ... 6=Sab
@@ -58,6 +58,15 @@ export function Dashboard() {
     if (status === 'Cancelado') return 'badge badge-vermelho';
     return 'badge badge-amarelo';
   };
+
+  if (carregando) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', flexDirection: 'column', gap: 16 }}>
+        <div className="spinner" />
+        <p style={{ color: 'var(--texto-claro)', fontSize: 14 }}>Carregando dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <>
