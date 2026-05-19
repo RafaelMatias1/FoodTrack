@@ -123,7 +123,7 @@ export function Historico() {
                       {p.status === 'Em preparo' && (
                         <button
                           className="btn btn-sm btn-primary"
-                          onClick={() => atualizarStatusPedido(p.id, 'Concluído')}
+                          onClick={() => atualizarStatusPedido(p.id, 'Concluído').catch(console.error)}
                         >
                           Concluir
                         </button>
@@ -132,7 +132,7 @@ export function Historico() {
                         <button
                           className="btn btn-sm btn-danger"
                           style={{ marginLeft: 4 }}
-                          onClick={() => atualizarStatusPedido(p.id, 'Cancelado')}
+                          onClick={() => atualizarStatusPedido(p.id, 'Cancelado').catch(console.error)}
                         >
                           Cancelar
                         </button>

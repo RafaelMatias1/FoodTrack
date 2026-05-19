@@ -1,5 +1,68 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { Produto, Pedido, Cliente, ItemPedido, FormaPagamento, OrigemPedido, Configuracoes } from '../types';
+import { api } from '../services/api';
+
+// ─── Tipos da API ────────────────────────────────────────────────────────────
+
+interface UsuarioAPI {
+  id: number;
+  email: string;
+  nomeFoodTruck: string;
+  nomeProprietario: string;
+  cidade: string;
+  codigoQuiosque: string;
+  corPrimaria: string;
+}
+
+interface ProdutoAPI {
+  id: number;
+  nome: string;
+  categoria: string;
+  preco: number;
+  ativo: boolean;
+  estoqueAtual: number;
+  estoqueMinimo: number;
+  descricao?: string;
+  imagemEmoji?: string;
+  imagemUrl?: string;
+  personalizacoes?: { label: string; tipo: 'remover' | 'adicionar' | 'outro' }[];
+}
+
+interface ClienteAPI {
+  id: number;
+  nome: string;
+  contato?: string;
+  totalPedidos: number;
+  totalGasto: number;
+  ultimoPedido?: string;
+  preferencia?: string;
+  tipo: string;
+}
+
+interface ItemPedidoAPI {
+  id: number;
+  produtoId: number;
+  produto: ProdutoAPI;
+  quantidade: number;
+  precoUnit: number;
+  subtotal: number;
+  observacao?: string;
+}
+
+interface PedidoAPI {
+  id: number;
+  numero: string;
+  clienteNome?: string;
+  origem: string;
+  total: number;
+  formaPagamento: string;
+  status: string;
+  observacoes?: string;
+  data: string;
+  itens: ItemPedidoAPI[];
+}
+
+// ─── Context Type ─────────────────────────────────────────────────────────────
 
 interface AppContextType {
   produtos: Produto[];
@@ -7,228 +70,231 @@ interface AppContextType {
   clientes: Cliente[];
   configuracoes: Configuracoes;
   logado: boolean;
-  login: (email: string, senha: string) => boolean;
+  carregando: boolean;
+  inicializando: boolean;
+  login: (email: string, senha: string) => Promise<string | null>;
   logout: () => void;
-  cadastrar: (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; email: string; senha: string }) => void;
-  primeiroAcesso: boolean;
-  adicionarProduto: (produto: Omit<Produto, 'id'>) => void;
-  editarProduto: (id: number, produto: Partial<Produto>) => void;
-  excluirProduto: (id: number) => void;
-  reporEstoque: (id: number, quantidade: number) => void;
+  cadastrar: (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; email: string; senha: string }) => Promise<string | null>;
+  adicionarProduto: (produto: Omit<Produto, 'id'>) => Promise<void>;
+  editarProduto: (id: number, produto: Partial<Produto>) => Promise<void>;
+  excluirProduto: (id: number) => Promise<void>;
+  reporEstoque: (id: number, quantidade: number) => Promise<void>;
   criarPedido: (dados: {
     cliente?: string;
     origem: OrigemPedido;
     itens: ItemPedido[];
     formaPagamento: FormaPagamento;
     observacoes?: string;
-  }) => Pedido;
-  atualizarStatusPedido: (id: number, status: Pedido['status']) => void;
-  adicionarCliente: (cliente: Omit<Cliente, 'id' | 'totalPedidos' | 'totalGasto'>) => void;
+  }) => Promise<Pedido>;
+  atualizarStatusPedido: (id: number, status: Pedido['status']) => Promise<void>;
+  adicionarCliente: (cliente: Omit<Cliente, 'id' | 'totalPedidos' | 'totalGasto'>) => Promise<void>;
   salvarConfiguracoes: (cfg: Partial<Configuracoes>) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
+// ─── Helpers de conversão API → Frontend ─────────────────────────────────────
+
 const configPadrao: Configuracoes = {
-  nomeFoodTruck: 'Food Truck do Elpidio',
-  nomeProprietario: 'Elpidio',
-  cidade: 'Guaramirim - SC',
+  nomeFoodTruck: 'FoodTruck',
+  nomeProprietario: '',
+  cidade: '',
   email: '',
-  senha: '1234',
+  senha: '',
   codigoQuiosque: '0000',
   corPrimaria: '#e07b20',
 };
 
-const produtosIniciais: Produto[] = [
-  { id: 1, nome: 'X-Burguer', categoria: 'Lanche', preco: 18, ativo: true, estoqueAtual: 15, estoqueMinimo: 10, imagemEmoji: '🍔' },
-  { id: 2, nome: 'X-Bacon', categoria: 'Lanche', preco: 22, ativo: true, estoqueAtual: 8, estoqueMinimo: 10, imagemEmoji: '🥓' },
-  { id: 3, nome: 'Cachorro-Quente', categoria: 'Lanche', preco: 14, ativo: true, estoqueAtual: 20, estoqueMinimo: 10, imagemEmoji: '🌭' },
-  { id: 4, nome: 'Fritas Pequena', categoria: 'Acompanhamento', preco: 8, ativo: true, estoqueAtual: 30, estoqueMinimo: 15, imagemEmoji: '🍟' },
-  { id: 5, nome: 'Fritas Grande', categoria: 'Acompanhamento', preco: 14, ativo: true, estoqueAtual: 25, estoqueMinimo: 10, imagemEmoji: '🍟' },
-  { id: 6, nome: 'Refrigerante', categoria: 'Bebida', preco: 6, ativo: true, estoqueAtual: 3, estoqueMinimo: 10, imagemEmoji: '🥤' },
-  { id: 7, nome: 'Suco Natural', categoria: 'Bebida', preco: 8, ativo: false, estoqueAtual: 0, estoqueMinimo: 5, imagemEmoji: '🧃' },
-  { id: 8, nome: 'Combo Família', categoria: 'Combo', preco: 65, ativo: true, estoqueAtual: 5, estoqueMinimo: 3, imagemEmoji: '🎁' },
-  { id: 9, nome: 'Pão de Hot Dog', categoria: 'Insumo', preco: 2, ativo: true, estoqueAtual: 4, estoqueMinimo: 10, imagemEmoji: '🍞' },
-];
+function cfgFromUsuario(u: UsuarioAPI, email: string): Configuracoes {
+  return { nomeFoodTruck: u.nomeFoodTruck, nomeProprietario: u.nomeProprietario, cidade: u.cidade, email, senha: '', codigoQuiosque: u.codigoQuiosque, corPrimaria: u.corPrimaria };
+}
 
-const hoje = new Date();
-const pedidosIniciais: Pedido[] = [
-  {
-    id: 21, numero: '#021', cliente: 'Elpidio Jr.', origem: 'WhatsApp',
-    itens: [{ produto: produtosIniciais[7], quantidade: 1, subtotal: 65 }],
-    total: 65, formaPagamento: 'Débito', status: 'Em preparo',
-    data: new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 17, 58),
-  },
-  {
-    id: 22, numero: '#022', cliente: 'Ana L.', origem: 'Presencial',
-    itens: [{ produto: produtosIniciais[2], quantidade: 2, subtotal: 28 }],
-    total: 28, formaPagamento: 'Crédito', status: 'Concluído',
-    data: new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 18, 15),
-  },
-  {
-    id: 23, numero: '#023', cliente: 'Carlos M.', origem: 'Presencial',
-    itens: [
-      { produto: produtosIniciais[0], quantidade: 1, subtotal: 18 },
-      { produto: produtosIniciais[3], quantidade: 1, subtotal: 8 },
-    ],
-    total: 32, formaPagamento: 'Pix', status: 'Concluído',
-    data: new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 18, 42),
-  },
-  {
-    id: 20, numero: '#020', cliente: 'Fernanda S.', origem: 'WhatsApp',
-    itens: [
-      { produto: produtosIniciais[1], quantidade: 1, subtotal: 22 },
-      { produto: produtosIniciais[5], quantidade: 1, subtotal: 6 },
-    ],
-    total: 28, formaPagamento: 'Pix', status: 'Concluído',
-    data: new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 17, 33),
-  },
-  {
-    id: 19, numero: '#019', cliente: undefined, origem: 'Presencial',
-    itens: [
-      { produto: produtosIniciais[3], quantidade: 1, subtotal: 8 },
-      { produto: produtosIniciais[6], quantidade: 1, subtotal: 8 },
-    ],
-    total: 16, formaPagamento: 'Dinheiro', status: 'Concluído',
-    data: new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 17, 10),
-  },
-];
+function produtoFromAPI(p: ProdutoAPI): Produto {
+  return { ...p, categoria: p.categoria as Produto['categoria'] };
+}
 
-const clientesIniciais: Cliente[] = [
-  { id: 1, nome: 'Carlos Mendes', contato: '(47) 98123-4567', totalPedidos: 14, totalGasto: 378, ultimoPedido: hoje, preferencia: 'X-Burguer', tipo: 'frequente' },
-  { id: 2, nome: 'Ana Lima', contato: '(47) 98765-1234', totalPedidos: 8, totalGasto: 196, ultimoPedido: hoje, preferencia: 'Cachorro-Quente', tipo: 'recorrente' },
-  { id: 3, nome: 'Fernanda Santos', contato: '(47) 99456-7890', totalPedidos: 5, totalGasto: 143, ultimoPedido: hoje, preferencia: 'X-Bacon', tipo: 'WhatsApp' },
-  { id: 4, nome: 'Elpidio Jr.', contato: '(47) 99321-6548', totalPedidos: 3, totalGasto: 205, ultimoPedido: hoje, preferencia: 'Combo Família', tipo: 'familiar' },
-];
+function clienteFromAPI(c: ClienteAPI): Cliente {
+  return { ...c, tipo: c.tipo as Cliente['tipo'], ultimoPedido: c.ultimoPedido ? new Date(c.ultimoPedido) : undefined };
+}
+
+function pedidoFromAPI(p: PedidoAPI): Pedido {
+  return {
+    id: p.id,
+    numero: p.numero,
+    cliente: p.clienteNome,
+    origem: p.origem as OrigemPedido,
+    total: p.total,
+    formaPagamento: p.formaPagamento as FormaPagamento,
+    status: p.status as Pedido['status'],
+    observacoes: p.observacoes,
+    data: new Date(p.data),
+    itens: p.itens.map(i => ({
+      produto: produtoFromAPI(i.produto),
+      quantidade: i.quantidade,
+      subtotal: i.subtotal,
+      observacao: i.observacao,
+    })),
+  };
+}
+
+// ─── Provider ────────────────────────────────────────────────────────────────
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [configuracoes, setConfiguracoes] = useState<Configuracoes>(() => {
-    const saved = localStorage.getItem('ft_config');
-    return saved ? JSON.parse(saved) : configPadrao;
-  });
-  const [primeiroAcesso, setPrimeiroAcesso] = useState<boolean>(() => !localStorage.getItem('ft_config'));
-  const [logado, setLogado] = useState<boolean>(() => sessionStorage.getItem('ft_logado') === 'true');
+  const [configuracoes, setConfiguracoes] = useState<Configuracoes>(configPadrao);
+  const [logado, setLogado] = useState<boolean>(false);
+  const [carregando, setCarregando] = useState<boolean>(false);
+  const [inicializando, setInicializando] = useState<boolean>(true);
 
-  const [produtos, setProdutos] = useState<Produto[]>(() => {
-    const saved = localStorage.getItem('ft_produtos');
-    return saved ? JSON.parse(saved) : produtosIniciais;
-  });
-  const [pedidos, setPedidos] = useState<Pedido[]>(() => {
-    const saved = localStorage.getItem('ft_pedidos');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.map((p: Pedido) => ({ ...p, data: new Date(p.data) }));
-    }
-    return pedidosIniciais;
-  });
-  const [clientes, setClientes] = useState<Cliente[]>(() => {
-    const saved = localStorage.getItem('ft_clientes');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.map((c: Cliente) => ({ ...c, ultimoPedido: c.ultimoPedido ? new Date(c.ultimoPedido) : undefined }));
-    }
-    return clientesIniciais;
-  });
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [pedidos, setPedidos]   = useState<Pedido[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
 
-  useEffect(() => { localStorage.setItem('ft_config', JSON.stringify(configuracoes)); }, [configuracoes]);
-  useEffect(() => { localStorage.setItem('ft_produtos', JSON.stringify(produtos)); }, [produtos]);
-  useEffect(() => { localStorage.setItem('ft_pedidos', JSON.stringify(pedidos)); }, [pedidos]);
-  useEffect(() => { localStorage.setItem('ft_clientes', JSON.stringify(clientes)); }, [clientes]);
-
-  const login = (email: string, senha: string): boolean => {
-    if (email === configuracoes.email && senha === configuracoes.senha) {
+  // Ao montar: verifica se já tem token e carrega os dados
+  const carregarDados = useCallback(async () => {
+    try {
+      const [prods, peds, clis, me] = await Promise.all([
+        api.get<ProdutoAPI[]>('/produtos'),
+        api.get<PedidoAPI[]>('/pedidos'),
+        api.get<ClienteAPI[]>('/clientes'),
+        api.get<{ usuario: UsuarioAPI }>('/auth/me'),
+      ]);
+      setProdutos(prods.map(produtoFromAPI));
+      setPedidos(peds.map(pedidoFromAPI));
+      setClientes(clis.map(clienteFromAPI));
+      const emailSalvo = localStorage.getItem('ft_email') ?? '';
+      setConfiguracoes(cfgFromUsuario(me.usuario, emailSalvo));
       setLogado(true);
-      sessionStorage.setItem('ft_logado', 'true');
-      return true;
+    } catch {
+      // Token inválido ou expirado
+      localStorage.removeItem('ft_token');
+      localStorage.removeItem('ft_email');
+      setLogado(false);
+    } finally {
+      setInicializando(false);
     }
-    return false;
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem('ft_token')) {
+      carregarDados();
+    } else {
+      setInicializando(false);
+    }
+  }, [carregarDados]);
+
+  // ─── Auth ──────────────────────────────────────────────────────────────────
+
+  const login = async (email: string, senha: string): Promise<string | null> => {
+    setCarregando(true);
+    try {
+      const res = await api.post<{ token: string; usuario: UsuarioAPI }>('/auth/login', { email, senha });
+      localStorage.setItem('ft_token', res.token);
+      localStorage.setItem('ft_email', email);
+      setConfiguracoes(cfgFromUsuario(res.usuario, email));
+      await carregarDados();
+      return null;
+    } catch (e) {
+      return (e as Error).message ?? 'Erro ao fazer login.';
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const logout = () => {
     setLogado(false);
-    sessionStorage.removeItem('ft_logado');
+    localStorage.removeItem('ft_token');
+    localStorage.removeItem('ft_email');
+    setProdutos([]); setPedidos([]); setClientes([]);
+    setConfiguracoes(configPadrao);
   };
 
-  const cadastrar = (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; email: string; senha: string }) => {
-    const novaCfg = { ...configPadrao, ...dados };
-    setConfiguracoes(novaCfg);
-    localStorage.setItem('ft_config', JSON.stringify(novaCfg));
-    setPrimeiroAcesso(false);
-    setLogado(true);
-    sessionStorage.setItem('ft_logado', 'true');
+  const cadastrar = async (dados: { nomeFoodTruck: string; nomeProprietario: string; cidade: string; email: string; senha: string }): Promise<string | null> => {
+    setCarregando(true);
+    try {
+      const res = await api.post<{ token: string; usuario: UsuarioAPI }>('/auth/register', dados);
+      localStorage.setItem('ft_token', res.token);
+      localStorage.setItem('ft_email', dados.email);
+      setConfiguracoes(cfgFromUsuario(res.usuario, dados.email));
+      setLogado(true);
+      setProdutos([]); setPedidos([]); setClientes([]);
+      return null;
+    } catch (e) {
+      return (e as Error).message ?? 'Erro ao cadastrar.';
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const salvarConfiguracoes = (cfg: Partial<Configuracoes>) => {
     setConfiguracoes(prev => ({ ...prev, ...cfg }));
   };
 
-  const adicionarProduto = (produto: Omit<Produto, 'id'>) => {
-    const id = Math.max(0, ...produtos.map(p => p.id)) + 1;
-    setProdutos(prev => [...prev, { ...produto, id }]);
+  // ─── Produtos ─────────────────────────────────────────────────────────────
+
+  const adicionarProduto = async (produto: Omit<Produto, 'id'>) => {
+    const criado = await api.post<ProdutoAPI>('/produtos', produto);
+    setProdutos(prev => [...prev, produtoFromAPI(criado)]);
   };
 
-  const editarProduto = (id: number, dados: Partial<Produto>) => {
-    setProdutos(prev => prev.map(p => p.id === id ? { ...p, ...dados } : p));
+  const editarProduto = async (id: number, dados: Partial<Produto>) => {
+    const atualizado = await api.patch<ProdutoAPI>(`/produtos/${id}`, dados);
+    setProdutos(prev => prev.map(p => p.id === id ? produtoFromAPI(atualizado) : p));
   };
 
-  const excluirProduto = (id: number) => {
+  const excluirProduto = async (id: number) => {
+    await api.delete(`/produtos/${id}`);
     setProdutos(prev => prev.filter(p => p.id !== id));
   };
 
-  const reporEstoque = (id: number, quantidade: number) => {
-    setProdutos(prev => prev.map(p => p.id === id ? { ...p, estoqueAtual: p.estoqueAtual + quantidade } : p));
+  const reporEstoque = async (id: number, quantidade: number) => {
+    const atualizado = await api.post<ProdutoAPI>(`/produtos/${id}/repor-estoque`, { quantidade });
+    setProdutos(prev => prev.map(p => p.id === id ? produtoFromAPI(atualizado) : p));
   };
 
-  const criarPedido = (dados: {
+  // ─── Pedidos ──────────────────────────────────────────────────────────────
+
+  const criarPedido = async (dados: {
     cliente?: string;
     origem: OrigemPedido;
     itens: ItemPedido[];
     formaPagamento: FormaPagamento;
     observacoes?: string;
-  }): Pedido => {
-    const id = Math.max(0, ...pedidos.map(p => p.id)) + 1;
-    const numero = `#${String(id).padStart(3, '0')}`;
-    const total = dados.itens.reduce((sum, item) => sum + item.subtotal, 0);
-    const novoPedido: Pedido = { id, numero, ...dados, total, status: 'Em preparo', data: new Date() };
-
-    setProdutos(prev => prev.map(p => {
-      const item = dados.itens.find(i => i.produto.id === p.id);
-      if (item) return { ...p, estoqueAtual: Math.max(0, p.estoqueAtual - item.quantidade) };
-      return p;
-    }));
-
-    if (dados.cliente) {
-      setClientes(prev => {
-        const nomeCliente = dados.cliente!.toLowerCase().trim();
-        const existe = prev.find(c => c.nome.toLowerCase() === nomeCliente)
-          || prev.find(c => c.nome.toLowerCase().includes(nomeCliente))
-          || prev.find(c => nomeCliente.includes(c.nome.toLowerCase().split(' ')[0]));
-        if (existe) {
-          return prev.map(c => c.id === existe.id
-            ? { ...c, totalPedidos: c.totalPedidos + 1, totalGasto: c.totalGasto + total, ultimoPedido: new Date() }
-            : c
-          );
-        }
-        return prev;
-      });
-    }
-
-    setPedidos(prev => [novoPedido, ...prev]);
-    return novoPedido;
+  }): Promise<Pedido> => {
+    const body = {
+      cliente: dados.cliente,
+      origem: dados.origem,
+      formaPagamento: dados.formaPagamento,
+      observacoes: dados.observacoes,
+      itens: dados.itens.map(i => ({ produtoId: i.produto.id, quantidade: i.quantidade, observacao: i.observacao })),
+    };
+    const criado = await api.post<PedidoAPI>('/pedidos', body);
+    const pedido = pedidoFromAPI(criado);
+    setPedidos(prev => [pedido, ...prev]);
+    // Atualiza estoques localmente com os valores reais do servidor
+    const idsAlterados = dados.itens.map(i => i.produto.id);
+    const prodsAtualizados = await api.get<ProdutoAPI[]>('/produtos');
+    setProdutos(prodsAtualizados.map(produtoFromAPI).filter(p => idsAlterados.includes(p.id) || true));
+    return pedido;
   };
 
-  const atualizarStatusPedido = (id: number, status: Pedido['status']) => {
+  const atualizarStatusPedido = async (id: number, status: Pedido['status']) => {
+    await api.patch<PedidoAPI>(`/pedidos/${id}/status`, { status });
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, status } : p));
   };
 
-  const adicionarCliente = (cliente: Omit<Cliente, 'id' | 'totalPedidos' | 'totalGasto'>) => {
-    const id = Math.max(0, ...clientes.map(c => c.id)) + 1;
-    setClientes(prev => [...prev, { ...cliente, id, totalPedidos: 0, totalGasto: 0 }]);
+  // ─── Clientes ─────────────────────────────────────────────────────────────
+
+  const adicionarCliente = async (cliente: Omit<Cliente, 'id' | 'totalPedidos' | 'totalGasto'>) => {
+    const criado = await api.post<ClienteAPI>('/clientes', cliente);
+    setClientes(prev => [...prev, clienteFromAPI(criado)]);
   };
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <AppContext.Provider value={{
-      produtos, pedidos, clientes, configuracoes, logado, primeiroAcesso,
+      produtos, pedidos, clientes, configuracoes,
+      logado, carregando, inicializando,
       login, logout, cadastrar, salvarConfiguracoes,
       adicionarProduto, editarProduto, excluirProduto, reporEstoque,
       criarPedido, atualizarStatusPedido, adicionarCliente,

@@ -29,25 +29,33 @@ export function Estoque() {
   const baixo = produtos.filter(p => p.estoqueAtual > 0 && p.estoqueAtual <= p.estoqueMinimo).length;
   const semEstoque = produtos.filter(p => p.estoqueAtual === 0).length;
 
-  const confirmarRepor = () => {
+  const confirmarRepor = async () => {
     if (!modalReporId || !qtdRepor) return;
-    reporEstoque(modalReporId, parseInt(qtdRepor));
+    try {
+      await reporEstoque(modalReporId, parseInt(qtdRepor));
+    } catch (e) {
+      alert((e as Error).message ?? 'Erro ao repor estoque.');
+    }
     setModalReporId(null);
     setQtdRepor('');
   };
 
-  const confirmarNovo = () => {
+  const confirmarNovo = async () => {
     if (!novoNome || !novaQtd || !novoMin) return;
-    adicionarProduto({
-      nome: novoNome,
-      categoria: novaCategoria as Categoria,
-      preco: 0,
-      ativo: true,
-      estoqueAtual: parseInt(novaQtd),
-      estoqueMinimo: parseInt(novoMin),
-    });
-    setModalNovo(false);
-    setNovoNome(''); setNovaQtd(''); setNovoMin('');
+    try {
+      await adicionarProduto({
+        nome: novoNome,
+        categoria: novaCategoria as Categoria,
+        preco: 0,
+        ativo: true,
+        estoqueAtual: parseInt(novaQtd),
+        estoqueMinimo: parseInt(novoMin),
+      });
+      setModalNovo(false);
+      setNovoNome(''); setNovaQtd(''); setNovoMin('');
+    } catch (e) {
+      alert((e as Error).message ?? 'Erro ao adicionar produto.');
+    }
   };
 
   const produtoRepor = produtos.find(p => p.id === modalReporId);

@@ -59,18 +59,22 @@ export function NovoPedido() {
 
   const total = itens.reduce((sum, i) => sum + i.subtotal, 0);
 
-  const confirmar = () => {
+  const confirmar = async () => {
     if (itens.length === 0) return;
-    const pedido = criarPedido({
-      cliente: semCliente ? undefined : (cliente.trim() || undefined),
-      origem,
-      itens,
-      formaPagamento,
-      observacoes: observacoes.trim() || undefined,
-    });
-    setNumeroPedidoCriado(pedido.numero);
-    setSucesso(true);
-    setTimeout(() => navigate('/historico'), 1800);
+    try {
+      const pedido = await criarPedido({
+        cliente: semCliente ? undefined : (cliente.trim() || undefined),
+        origem,
+        itens,
+        formaPagamento,
+        observacoes: observacoes.trim() || undefined,
+      });
+      setNumeroPedidoCriado(pedido.numero);
+      setSucesso(true);
+      setTimeout(() => navigate('/historico'), 1800);
+    } catch (e) {
+      alert((e as Error).message ?? 'Erro ao criar pedido.');
+    }
   };
 
   const formas: FormaPagamento[] = ['Pix', 'Crédito', 'Débito', 'Dinheiro'];

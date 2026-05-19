@@ -32,11 +32,15 @@ export function Clientes() {
     (c.contato && c.contato.includes(busca))
   );
 
-  const confirmar = () => {
+  const confirmar = async () => {
     if (!nome.trim()) return;
-    adicionarCliente({ nome: nome.trim(), contato: contato.trim() || undefined, tipo, preferencia: undefined });
-    setModal(false);
-    setNome(''); setContato('');
+    try {
+      await adicionarCliente({ nome: nome.trim(), contato: contato.trim() || undefined, tipo, preferencia: undefined });
+      setModal(false);
+      setNome(''); setContato('');
+    } catch (e) {
+      alert((e as Error).message ?? 'Erro ao adicionar cliente.');
+    }
   };
 
   return (

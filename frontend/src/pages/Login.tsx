@@ -1,33 +1,24 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Utensils, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Login() {
-  const { login, configuracoes } = useApp();
+  const { login, configuracoes, carregando } = useApp();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [mostrar, setMostrar] = useState(false);
-  const [tentando, setTentando] = useState(false);
 
-  const handleLogin = () => {
-    if (!email.trim()) {
-      setErro('Digite seu e-mail.');
-      return;
+  const handleLogin = async () => {
+    if (!email.trim()) { setErro('Digite seu e-mail.'); return; }
+    if (!senha)        { setErro('Digite sua senha.');  return; }
+
+    const erroApi = await login(email.trim(), senha);
+    if (erroApi) {
+      setErro('E-mail ou senha incorretos.');
+      setSenha('');
     }
-    if (!senha) {
-      setErro('Digite sua senha.');
-      return;
-    }
-    setTentando(true);
-    setTimeout(() => {
-      const ok = login(email.trim(), senha);
-      if (!ok) {
-        setErro('E-mail ou senha incorretos.');
-        setSenha('');
-      }
-      setTentando(false);
-    }, 400);
   };
 
   return (
@@ -69,11 +60,7 @@ export function Login() {
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Digite a senha"
             />
-            <button
-              className="input-toggle-vis"
-              onClick={() => setMostrar(m => !m)}
-              type="button"
-            >
+            <button className="input-toggle-vis" onClick={() => setMostrar(m => !m)} type="button">
               {mostrar ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
@@ -83,13 +70,16 @@ export function Login() {
         <button
           className="btn btn-primary btn-block btn-lg"
           onClick={handleLogin}
-          disabled={tentando}
+          disabled={carregando}
         >
-          {tentando ? 'Entrando...' : 'Entrar'}
+          {carregando ? 'Entrando...' : 'Entrar'}
         </button>
 
-        <p className="login-hint">
-          {configuracoes.cidade}
+        <p style={{ textAlign: 'center', marginTop: 16, fontSize: 14, color: 'var(--texto-claro)' }}>
+          Primeiro acesso?{' '}
+          <Link to="/cadastro" style={{ color: 'var(--laranja)', fontWeight: 600 }}>
+            Criar conta
+          </Link>
         </p>
       </div>
     </div>

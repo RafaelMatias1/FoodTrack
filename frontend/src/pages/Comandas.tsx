@@ -23,8 +23,8 @@ export function Comandas() {
     return `${diff} min`;
   };
 
-  const cancelarPedido = (id: number) => {
-    atualizarStatusPedido(id, 'Cancelado');
+  const cancelarPedido = async (id: number) => {
+    await atualizarStatusPedido(id, 'Cancelado');
     setConfirmCancel(null);
   };
 
@@ -136,7 +136,7 @@ export function Comandas() {
                     <button
                       className="btn btn-primary"
                       style={{ flex: 1 }}
-                      onClick={() => atualizarStatusPedido(pedido.id, 'Concluído')}
+                      onClick={() => atualizarStatusPedido(pedido.id, 'Concluído').catch(console.error)}
                     >
                       <CheckCircle size={15} />
                       Pronto

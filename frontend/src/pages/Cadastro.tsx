@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChefHat, Utensils } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Cadastro() {
-  const { cadastrar } = useApp();
+  const { cadastrar, carregando } = useApp();
   const [passo, setPasso] = useState(1);
   const [nomeFoodTruck, setNomeFoodTruck] = useState('');
   const [nomeProprietario, setNomeProprietario] = useState('');
@@ -13,42 +14,27 @@ export function Cadastro() {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [erro, setErro] = useState('');
 
-  const avancar = () => {
+  const avancar = async () => {
     if (passo === 1) {
       if (!nomeFoodTruck.trim() || !nomeProprietario.trim()) {
         setErro('Preencha todos os campos obrigatórios.');
         return;
       }
-      setErro('');
-      setPasso(2);
+      setErro(''); setPasso(2);
     } else if (passo === 2) {
-      if (!email.trim()) {
-        setErro('Preencha o e-mail.');
-        return;
-      }
-      if (!/\S+@\S+\.\S+/.test(email)) {
-        setErro('Digite um e-mail válido.');
-        return;
-      }
-      setErro('');
-      setPasso(3);
+      if (!email.trim())              { setErro('Preencha o e-mail.'); return; }
+      if (!/\S+@\S+\.\S+/.test(email)) { setErro('Digite um e-mail válido.'); return; }
+      setErro(''); setPasso(3);
     } else {
-      if (!senha || senha.length < 4) {
-        setErro('A senha deve ter no mínimo 4 caracteres.');
-        return;
-      }
-      if (senha !== confirmarSenha) {
-        setErro('As senhas não coincidem.');
-        return;
-      }
-      cadastrar({ nomeFoodTruck, nomeProprietario, cidade, email, senha });
+      if (!senha || senha.length < 4)  { setErro('A senha deve ter no mínimo 4 caracteres.'); return; }
+      if (senha !== confirmarSenha)     { setErro('As senhas não coincidem.'); return; }
+
+      const erroApi = await cadastrar({ nomeFoodTruck, nomeProprietario, cidade, email, senha });
+      if (erroApi) setErro(erroApi);
     }
   };
 
-  const voltar = () => {
-    setErro('');
-    setPasso(p => p - 1);
-  };
+  const voltar = () => { setErro(''); setPasso(p => p - 1); };
 
   return (
     <div className="login-page">
@@ -56,10 +42,9 @@ export function Cadastro() {
         <div className="login-logo">
           <ChefHat size={36} />
         </div>
-        <h1 className="login-title">Bem-vindo ao FoodTrack!</h1>
+        <h1 className="login-title">Bem-vindo ao FoodTruck!</h1>
         <p className="login-sub">Configure seu sistema — Passo {passo} de 3</p>
 
-        {/* Barra de progresso */}
         <div style={{ background: 'var(--creme-escuro)', borderRadius: 4, height: 6, margin: '12px 0 20px', overflow: 'hidden' }}>
           <div style={{ width: passo === 1 ? '33%' : passo === 2 ? '66%' : '100%', height: '100%', background: 'var(--laranja)', borderRadius: 4, transition: 'width 0.4s' }} />
         </div>
@@ -68,81 +53,42 @@ export function Cadastro() {
           <>
             <div className="form-group">
               <label className="form-label">Nome do Food Truck *</label>
-              <input
-                className="form-control"
-                value={nomeFoodTruck}
-                onChange={e => { setNomeFoodTruck(e.target.value); setErro(''); }}
-                placeholder="Ex: Food Truck do Elpidio"
-                autoFocus
-              />
+              <input className="form-control" value={nomeFoodTruck} onChange={e => { setNomeFoodTruck(e.target.value); setErro(''); }} placeholder="Ex: Food Truck do Elpidio" autoFocus />
             </div>
             <div className="form-group">
               <label className="form-label">Nome do proprietário *</label>
-              <input
-                className="form-control"
-                value={nomeProprietario}
-                onChange={e => { setNomeProprietario(e.target.value); setErro(''); }}
-                placeholder="Ex: Elpidio Santos"
-              />
+              <input className="form-control" value={nomeProprietario} onChange={e => { setNomeProprietario(e.target.value); setErro(''); }} placeholder="Ex: Elpidio Santos" />
             </div>
             <div className="form-group">
               <label className="form-label">Cidade</label>
-              <input
-                className="form-control"
-                value={cidade}
-                onChange={e => setCidade(e.target.value)}
-                placeholder="Ex: Guaramirim - SC"
-              />
+              <input className="form-control" value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Ex: Guaramirim - SC" />
             </div>
           </>
         )}
 
         {passo === 2 && (
-          <>
-            <div className="form-group">
-              <label className="form-label">E-mail de acesso *</label>
-              <input
-                className="form-control"
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setErro(''); }}
-                placeholder="Ex: elpidio@email.com"
-                autoFocus
-              />
-              <span style={{ fontSize: 12, color: 'var(--texto-claro)', marginTop: 4, display: 'block' }}>
-                Você usará este e-mail para entrar no sistema.
-              </span>
-            </div>
-          </>
+          <div className="form-group">
+            <label className="form-label">E-mail de acesso *</label>
+            <input className="form-control" type="email" value={email} onChange={e => { setEmail(e.target.value); setErro(''); }} placeholder="Ex: elpidio@email.com" autoFocus />
+            <span style={{ fontSize: 12, color: 'var(--texto-claro)', marginTop: 4, display: 'block' }}>
+              Você usará este e-mail para entrar no sistema.
+            </span>
+          </div>
         )}
 
         {passo === 3 && (
           <>
             <div className="form-group">
               <label className="form-label">Crie uma senha de acesso *</label>
-              <input
-                className="form-control"
-                type="password"
-                value={senha}
-                onChange={e => { setSenha(e.target.value); setErro(''); }}
-                placeholder="Mínimo 4 caracteres"
-                autoFocus
-              />
+              <input className="form-control" type="password" value={senha} onChange={e => { setSenha(e.target.value); setErro(''); }} placeholder="Mínimo 4 caracteres" autoFocus />
             </div>
             <div className="form-group">
               <label className="form-label">Confirmar senha *</label>
-              <input
-                className="form-control"
-                type="password"
-                value={confirmarSenha}
-                onChange={e => { setConfirmarSenha(e.target.value); setErro(''); }}
-                placeholder="Repita a senha"
-                onKeyDown={e => e.key === 'Enter' && avancar()}
-              />
+              <input className="form-control" type="password" value={confirmarSenha} onChange={e => { setConfirmarSenha(e.target.value); setErro(''); }} placeholder="Repita a senha" onKeyDown={e => e.key === 'Enter' && avancar()} />
             </div>
             <div className="alert alert-warning" style={{ marginBottom: 12 }}>
               <Utensils size={14} />
-              Guarde sua senha em local seguro. Ela será necessária para acessar o sistema.
+              Guarde sua senha em local seguro.
             </div>
           </>
         )}
@@ -151,22 +97,23 @@ export function Cadastro() {
 
         <div style={{ display: 'flex', gap: 10 }}>
           {passo > 1 && (
-            <button className="btn btn-ghost" onClick={voltar}>
-              Voltar
-            </button>
+            <button className="btn btn-ghost" onClick={voltar} disabled={carregando}>Voltar</button>
           )}
           <button
             className="btn btn-primary btn-block btn-lg"
             onClick={avancar}
-            disabled={
-              passo === 1 ? !nomeFoodTruck || !nomeProprietario :
-              passo === 2 ? !email :
-              !senha || !confirmarSenha
-            }
+            disabled={carregando || (passo === 1 ? !nomeFoodTruck || !nomeProprietario : passo === 2 ? !email : !senha || !confirmarSenha)}
           >
-            {passo < 3 ? 'Continuar →' : '🚀 Começar a usar'}
+            {carregando ? 'Aguarde...' : passo < 3 ? 'Continuar →' : '🚀 Começar a usar'}
           </button>
         </div>
+
+        <p style={{ textAlign: 'center', marginTop: 16, fontSize: 14, color: 'var(--texto-claro)' }}>
+          Já tem conta?{' '}
+          <Link to="/" style={{ color: 'var(--laranja)', fontWeight: 600 }}>
+            Fazer login
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -72,7 +72,7 @@ export function Produtos() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const salvar = () => {
+  const salvar = async () => {
     if (!form.nome || !form.preco) return;
     const dados: Omit<Produto, 'id'> = {
       nome: form.nome,
@@ -85,16 +85,26 @@ export function Produtos() {
       descricao: form.descricao.trim() || undefined,
       imagemUrl: form.imagemUrl || undefined,
     };
-    if (editandoId) {
-      editarProduto(editandoId, dados);
-    } else {
-      adicionarProduto(dados);
+    try {
+      if (editandoId) {
+        await editarProduto(editandoId, dados);
+      } else {
+        await adicionarProduto(dados);
+      }
+      setModal(false);
+    } catch (e) {
+      alert((e as Error).message ?? 'Erro ao salvar produto.');
     }
-    setModal(false);
   };
 
-  const confirmarExcluir = () => {
-    if (confirmDelete) excluirProduto(confirmDelete);
+  const confirmarExcluir = async () => {
+    if (confirmDelete) {
+      try {
+        await excluirProduto(confirmDelete);
+      } catch (e) {
+        alert((e as Error).message ?? 'Erro ao excluir produto.');
+      }
+    }
     setConfirmDelete(null);
   };
 

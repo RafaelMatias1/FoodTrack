@@ -129,15 +129,19 @@ export function Quiosque() {
     setItens(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const confirmarPedido = () => {
-    const pedido = criarPedido({
-      cliente: nomeCliente.trim() || undefined,
-      origem: 'Quiosque',
-      itens,
-      formaPagamento,
-    });
-    setPedidoConfirmado(pedido.numero);
-    setPasso('confirmado');
+  const confirmarPedido = async () => {
+    try {
+      const pedido = await criarPedido({
+        cliente: nomeCliente.trim() || undefined,
+        origem: 'Quiosque',
+        itens,
+        formaPagamento,
+      });
+      setPedidoConfirmado(pedido.numero);
+      setPasso('confirmado');
+    } catch (e) {
+      alert((e as Error).message ?? 'Erro ao confirmar pedido.');
+    }
   };
 
   const reiniciar = () => {

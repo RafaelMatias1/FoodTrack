@@ -1,55 +1,79 @@
-# FoodTrack 🍔
+# 🍔 FoodTruck — Sistema de Gerenciamento
 
-Sistema de gerenciamento de vendas e estoque para o **Food Truck do Elpidio**, desenvolvido como Projeto Integrador do Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas — SENAI SC, 2026.
+> Projeto Integrador — Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas — SENAI SC, 2026.
 
-## Equipe
-- Nicolas Bitencurt
-- Eliza Carla Valdiero
-- **Júlia Gabriella Alves** _(Líder)_
-- Rafael Matias Schimidt
-
-**Orientador:** Gustavo Stangherlin Cantarelli
+Sistema web para gerenciamento de vendas, estoque, pedidos e clientes de um food truck.
 
 ---
 
-## 🚀 Tecnologias
+## 📁 Estrutura do Repositório
 
-| Tecnologia | Uso |
-|---|---|
-| React 18 + TypeScript | Interface |
-| Vite | Build / Dev server |
-| React Router DOM v6 | Navegação SPA |
-| Recharts | Gráficos |
-| Lucide React | Ícones |
-| CSS Variables | Estilização |
-| localStorage | Persistência local |
+```
+FoodTrack/
+├── frontend/       → App React + Vite (interface do usuário)
+├── backend/        → API REST Node.js + Express + Prisma
+├── db/             → Pasta reservada para arquivos locais do banco
+├── package.json    → Orquestrador (roda tudo junto)
+├── README.md       → Instruções de setup
+└── ROADMAP.md      → Progresso do projeto etapa por etapa
+```
 
 ---
 
-## 📦 Instalação e execução
+## 🚀 Como rodar o projeto
 
+### Pré-requisitos
+- Node.js 18+
+- MySQL rodando localmente
+- Banco `foodtruck` criado no MySQL
+
+### 1. Instalar dependências
 ```bash
-npm install
+npm run install:all
+```
+
+### 2. Configurar o banco (só na primeira vez)
+```bash
+# Edite backend/.env com suas credenciais do MySQL
+# Depois rode:
+npm run db:setup
+```
+
+### 3. Rodar tudo junto
+```bash
 npm run dev
 ```
 
-Acesse: `http://localhost:5173`
+- **Frontend:** http://localhost:5173  
+- **Backend:** http://localhost:3001  
+- **Health check:** http://localhost:3001/health  
 
 ---
 
-## 🗂️ Funcionalidades
+## 🗃️ Variáveis de ambiente
 
-| Módulo | Descrição |
+Arquivo: `backend/.env` *(não sobe para o Git)*
+
+```env
+DATABASE_URL="mysql://root:SUA_SENHA@localhost:3306/foodtruck"
+JWT_SECRET="chave-secreta-longa"
+PORT=3001
+CORS_ORIGIN="http://localhost:5173"
+```
+
+---
+
+## 📜 Scripts disponíveis (raiz)
+
+| Comando | O que faz |
 |---|---|
-| **Dashboard** | Faturamento do dia, pedidos, gráfico semanal, formas de pagamento |
-| **Novo Pedido** | Seleção de produtos, quantidade, forma de pagamento, observações |
-| **Estoque** | Controle de quantidades, alertas de estoque baixo, reposição |
-| **Histórico** | Listagem de pedidos por data, filtro por status, mudança de status |
-| **Clientes** | Cadastro, histórico de gastos, preferências |
-| **Produtos** | CRUD completo de produtos com preço e estoque |
+| `npm run dev` | Sobe frontend + backend juntos |
+| `npm run install:all` | Instala deps do front e do back |
+| `npm run db:setup` | Roda as migrations do banco |
+| `npm run db:seed` | Popula o banco com dados iniciais |
+| `npm run db:reset` | Apaga e recria o banco (cuidado!) |
+| `npm run build` | Build de produção dos dois |
 
 ---
 
-## 📱 Responsivo
-
-O sistema é adaptado para uso em dispositivos móveis (smartphones) e desktops.
+## 🗺️ Acompanhe o progresso em [ROADMAP.md](./ROADMAP.md)
